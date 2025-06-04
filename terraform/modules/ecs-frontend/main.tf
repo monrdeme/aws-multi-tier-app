@@ -154,11 +154,11 @@ data "aws_ami" "ecs_optimized" {
 
 # EC2 Launch Template for Frontend ECS Instances
 resource "aws_launch_template" "frontend_ecs_instance_template" {
-  name_prefix            = "${var.project_name}-${var.env}-front-ecs-lt-"
-  image_id               = data.aws_ami.ecs_optimized.id
-  instance_type          = var.instance_type
-  key_name               = "" # CIS Benchmark: No SSH key pair unless strictly necessary
-  vpc_security_group_ids = [aws_security_group.frontend_ecs_instance_sg.id]
+  name_prefix   = "${var.project_name}-${var.env}-front-ecs-lt-"
+  image_id      = data.aws_ami.ecs_optimized.id
+  instance_type = var.instance_type
+  key_name      = "" # CIS Benchmark: No SSH key pair unless strictly necessary
+
   iam_instance_profile {
     name = aws_iam_instance_profile.frontend_ecs_instance_profile.name
   }
