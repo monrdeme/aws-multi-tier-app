@@ -204,7 +204,7 @@ resource "aws_autoscaling_group" "frontend_ecs_asg" {
 
   launch_template {
     id      = aws_launch_template.frontend_ecs_instance_template.id
-    version = "$$Latest"
+    version = "$Latest"
   }
 
   tag {
