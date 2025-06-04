@@ -17,6 +17,6 @@ resource "aws_secretsmanager_secret_version" "db_master_password_version" {
 
   secret_string = jsonencode({
     username = var.db_username
-    password = random_password.db_master_password.result
+    password = var.db_password
   })
 }
