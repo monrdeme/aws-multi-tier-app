@@ -9,7 +9,7 @@ on:
       - main
     paths:
       - "app/**" # Trigger on changes in the 'app' directory
-      - "terraform/environments/dev/**" # Trigger on infrastructure changes
+      - "terraform/**" # Trigger on infrastructure changes
       - ".github/workflows/main.yml" # Trigger on workflow changes
   workflow_dispatch: # Allows manual trigger
 

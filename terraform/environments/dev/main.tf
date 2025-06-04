@@ -53,7 +53,7 @@ module "secrets_manager" {
 resource "random_password" "db_master_password" {
   length           = 16
   special          = true
-  override_special = "!@#$%^&*"
+  override_special = "!#$%^&*"
   min_upper        = 1
   min_lower        = 1
   min_numeric      = 1

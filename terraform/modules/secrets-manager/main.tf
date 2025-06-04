@@ -14,8 +14,9 @@ resource "aws_secretsmanager_secret" "db_master_password" {
 # Stores the actual secret value
 resource "aws_secretsmanager_secret_version" "db_master_password_version" {
   secret_id = aws_secretsmanager_secret.db_master_password.id
+
   secret_string = jsonencode({
     username = var.db_username
-    password = var.db_password
+    password = random_password.db_master_password.result
   })
 }
