@@ -12,7 +12,7 @@ resource "aws_iam_role" "remediation_lambda_role" {
   name = "${var.project_name}-${var.env}-remediation-lambda-role"
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-170"
+    Version = "2012-10-17"
     Statement = [
       {
         Action = "sts:AssumeRole"

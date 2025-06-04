@@ -174,29 +174,21 @@ data "aws_ssm_parameter" "ecs_ami" {
   name = "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id"
 }
 
-data "aws_ami" "ecs_optimized" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "image-id"
-    values = [data.aws_ssm_parameter.ecs_ami.value]
-  }
-}
-
 # EC2 Launch Template for Backend ECS Instances
 resource "aws_launch_template" "backend_ecs_instance_template" {
-  name_prefix            = "${var.project_name}-${var.env}-backend-ecs-lt"
-  image_id               = data.aws_ami.ecs_optimized.id
-  instance_type          = var.instance_type
-  key_name               = "" # CIS Benchmark: No SSH key pair unless strictly necessary
-  vpc_security_group_ids = [aws_security_group.backend_ecs_instance_sg.id]
+  name_prefix   = "${var.project_name}-${var.env}-backend-ecs-lt"
+  image_id      = data.aws_ssm_parameter.ecs_ami.value
+  instance_type = var.instance_type
+  key_name      = "" # CIS Benchmark: No SSH key pair unless strictly necessary
+
   iam_instance_profile {
     name = aws_iam_instance_profile.backend_ecs_instance_profile.name
   }
+
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {
     ecs_cluster_name = aws_ecs_cluster.backend.name
   }))
+
   # Block public IP assignment. Instances are in private subnets.
   network_interfaces {
     associate_public_ip_address = false
@@ -212,6 +204,7 @@ resource "aws_launch_template" "backend_ecs_instance_template" {
       Layer       = "Application"
     }
   }
+
   tag_specifications {
     resource_type = "volume"
     tags = {

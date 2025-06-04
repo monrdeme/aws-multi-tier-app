@@ -127,7 +127,9 @@ resource "aws_route_table" "private_app" {
 
   route {
     cidr_block = "0.0.0.0/0"
-    # nat_gateway_id = aws_nat_gateway.main[count.index].id
+
+    # Only reference NAT GW if it exists at this index
+    nat_gateway_id = length(aws_nat_gateway.main) > count.index ? aws_nat_gateway.main[count.index].id : aws_nat_gateway.main[0].id
   }
 
   tags = {
@@ -135,6 +137,8 @@ resource "aws_route_table" "private_app" {
     Project     = var.project_name
     Environment = var.env
   }
+
+  depends_on = [aws_nat_gateway.main] # Ensure NAT GWs are created first
 }
 
 # Associate Private App Subnets with their respective Private App Route Tables
