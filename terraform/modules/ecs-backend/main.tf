@@ -268,14 +268,14 @@ resource "aws_autoscaling_group" "backend_ecs_asg" {
 
 # Internal Application Load Balancer (ALB)
 resource "aws_lb" "internal_backend" {
-  name               = "${var.project_name}-${var.env}-internal-alb"
+  name               = "${var.project_name}-${var.env}-int-alb"
   internal           = true # Internal-facing
   load_balancer_type = "application"
   security_groups    = [aws_security_group.internal_alb_sg.id]
   subnets            = var.private_app_subnet_ids # ALB lives in private application subnets
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-internal-alb"
+    Name        = "${var.project_name}-${var.env}-int-alb"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Application"
@@ -284,7 +284,7 @@ resource "aws_lb" "internal_backend" {
 
 # Internal ALB Security Group (allows inbound traffic from Frontend ALB)
 resource "aws_security_group" "internal_alb_sg" {
-  name        = "${var.project_name}-${var.env}-internal-alb-sg"
+  name        = "${var.project_name}-${var.env}-int-alb-sg"
   description = "Allows traffic from Frontend ALB to Internal ALB"
   vpc_id      = var.vpc_id
 
@@ -318,7 +318,7 @@ resource "aws_security_group" "internal_alb_sg" {
   }]
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-internal-alb-sg"
+    Name        = "${var.project_name}-${var.env}-int-alb-sg"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Application"
@@ -327,7 +327,7 @@ resource "aws_security_group" "internal_alb_sg" {
 
 # Internal ALB Target Group
 resource "aws_lb_target_group" "backend_app" {
-  name        = "${var.project_name}-${var.env}-backend-app"
+  name        = "${var.project_name}-${var.env}-back-app"
   port        = var.container_port
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
@@ -344,7 +344,7 @@ resource "aws_lb_target_group" "backend_app" {
   }
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-backend-target-group"
+    Name        = "${var.project_name}-${var.env}-back-tg"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Application"
@@ -363,7 +363,7 @@ resource "aws_lb_listener" "http_backend" {
   }
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-internal-alb-listener"
+    Name        = "${var.project_name}-${var.env}-int-alb-listener"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Application"
