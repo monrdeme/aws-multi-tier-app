@@ -2,7 +2,7 @@
 
 # ECR Repository for the Frontend Docker image
 resource "aws_ecr_repository" "frontend_app" {
-  name                 = "${var.project_name}-${var.env}-frontend-app"
+  name                 = "${var.project_name}-${var.env}-front-app"
   image_tag_mutability = "MUTABLE" # Can be IMMUTABLE for stricter control
   force_delete         = false     # Set to true with caution, deletes repository even if it contains images
 
@@ -15,7 +15,7 @@ resource "aws_ecr_repository" "frontend_app" {
   }
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-frontend-ecr"
+    Name        = "${var.project_name}-${var.env}-front-ecr"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Presentation"
@@ -24,7 +24,7 @@ resource "aws_ecr_repository" "frontend_app" {
 
 # IAM Role for ECS Task Execution (allows ECS to pull images from ECR, log to CloudWatch, etc.)
 resource "aws_iam_role" "frontend_ecs_task_execution_role" {
-  name = "${var.project_name}-${var.env}-frontend-ecs-task-exec-role"
+  name = "${var.project_name}-${var.env}-front-ecs-task-exec-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -40,7 +40,7 @@ resource "aws_iam_role" "frontend_ecs_task_execution_role" {
   })
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-frontend-ecs-task-exec-role"
+    Name        = "${var.project_name}-${var.env}-front-ecs-task-exec-role"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Presentation"
@@ -54,10 +54,10 @@ resource "aws_iam_role_policy_attachment" "frontend_ecs_task_execution_role_poli
 
 # ECS Cluster for Frontend
 resource "aws_ecs_cluster" "frontend" {
-  name = "${var.project_name}-${var.env}-frontend-cluster"
+  name = "${var.project_name}-${var.env}-front-cluster"
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-frontend-cluster"
+    Name        = "${var.project_name}-${var.env}-front-cluster"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Presentation"
@@ -66,7 +66,7 @@ resource "aws_ecs_cluster" "frontend" {
 
 # IAM Role for EC2 instances that are part of the ECS cluster
 resource "aws_iam_role" "frontend_ecs_instance_role" {
-  name = "${var.project_name}-${var.env}-frontend-ecs-instance-role"
+  name = "${var.project_name}-${var.env}-front-ecs-instance-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -82,7 +82,7 @@ resource "aws_iam_role" "frontend_ecs_instance_role" {
   })
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-frontend-ecs-instance-role"
+    Name        = "${var.project_name}-${var.env}-front-ecs-instance-role"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Presentation"
@@ -90,7 +90,7 @@ resource "aws_iam_role" "frontend_ecs_instance_role" {
 }
 
 resource "aws_iam_instance_profile" "frontend_ecs_instance_profile" {
-  name = "${var.project_name}-${var.env}-frontend-ecs-instance-profile"
+  name = "${var.project_name}-${var.env}-front-ecs-instance-profile"
   role = aws_iam_role.frontend_ecs_instance_role.name
 }
 
@@ -107,7 +107,7 @@ resource "aws_iam_role_policy_attachment" "frontend_ecs_instance_ssm_policy" {
 
 # Security Group for Frontend ECS Instances (allowing traffic from ALB only)
 resource "aws_security_group" "frontend_ecs_instance_sg" {
-  name        = "${var.project_name}-${var.env}-frontend-ecs-instance-sg"
+  name        = "${var.project_name}-${var.env}-front-ecs-instance-sg"
   description = "Allow traffic from public ALB to frontend ECS instances"
   vpc_id      = var.vpc_id
 
@@ -130,7 +130,7 @@ resource "aws_security_group" "frontend_ecs_instance_sg" {
   }
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-frontend-ecs-instance-sg"
+    Name        = "${var.project_name}-${var.env}-front-ecs-instance-sg"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Presentation"
@@ -154,7 +154,7 @@ data "aws_ami" "ecs_optimized" {
 
 # EC2 Launch Template for Frontend ECS Instances
 resource "aws_launch_template" "frontend_ecs_instance_template" {
-  name_prefix            = "${var.project_name}-${var.env}-frontend-ecs-lt-"
+  name_prefix            = "${var.project_name}-${var.env}-front-ecs-lt-"
   image_id               = data.aws_ami.ecs_optimized.id
   instance_type          = var.instance_type
   key_name               = "" # CIS Benchmark: No SSH key pair unless strictly necessary
@@ -174,7 +174,7 @@ resource "aws_launch_template" "frontend_ecs_instance_template" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name        = "${var.project_name}-${var.env}-frontend-ecs-instance"
+      Name        = "${var.project_name}-${var.env}-front-ecs-instance"
       Project     = var.project_name
       Environment = var.env
       Layer       = "Presentation"
@@ -183,7 +183,7 @@ resource "aws_launch_template" "frontend_ecs_instance_template" {
   tag_specifications {
     resource_type = "volume"
     tags = {
-      Name        = "${var.project_name}-${var.env}-frontend-ecs-instance-volume"
+      Name        = "${var.project_name}-${var.env}-front-ecs-instance-volume"
       Project     = var.project_name
       Environment = var.env
       Layer       = "Presentation"
@@ -193,7 +193,7 @@ resource "aws_launch_template" "frontend_ecs_instance_template" {
 
 # Auto Scaling Group for Frontend ECS Instances
 resource "aws_autoscaling_group" "frontend_ecs_asg" {
-  name                      = "${var.project_name}-${var.env}-frontend-ecs-asg"
+  name                      = "${var.project_name}-${var.env}-front-ecs-asg"
   vpc_zone_identifier       = var.public_subnet_ids
   desired_capacity          = var.desired_capacity
   max_size                  = var.max_capacity
@@ -214,7 +214,7 @@ resource "aws_autoscaling_group" "frontend_ecs_asg" {
   }
   tag {
     key                 = "Name"
-    value               = "${var.project_name}-${var.env}-frontend-ecs-instance"
+    value               = "${var.project_name}-${var.env}-front-ecs-instance"
     propagate_at_launch = true
   }
   tag {
@@ -236,14 +236,14 @@ resource "aws_autoscaling_group" "frontend_ecs_asg" {
 
 # Public Application Load Balancer (ALB)
 resource "aws_lb" "public_frontend" {
-  name               = "${var.project_name}-${var.env}-public-alb"
+  name               = "${var.project_name}-${var.env}-pub-alb"
   internal           = false # Internet-facing
   load_balancer_type = "application"
   security_groups    = [aws_security_group.public_alb_sg.id]
   subnets            = var.public_subnet_ids # ALB lives in public subnets
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-public-alb"
+    Name        = "${var.project_name}-${var.env}-pub-alb"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Presentation"
@@ -252,7 +252,7 @@ resource "aws_lb" "public_frontend" {
 
 # Public ALB Security Group (allows inbound HTTP/HTTPS from internet)
 resource "aws_security_group" "public_alb_sg" {
-  name        = "${var.project_name}-${var.env}-public-alb-sg"
+  name        = "${var.project_name}-${var.env}-pub-alb-sg"
   description = "Allows HTTP/HTTPS access to public ALB"
   vpc_id      = var.vpc_id
 
@@ -283,7 +283,7 @@ resource "aws_security_group" "public_alb_sg" {
   }
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-public-alb-sg"
+    Name        = "${var.project_name}-${var.env}-pub-alb-sg"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Presentation"
@@ -292,7 +292,7 @@ resource "aws_security_group" "public_alb_sg" {
 
 # Public ALB Target Group
 resource "aws_lb_target_group" "frontend_app" {
-  name        = "${var.project_name}-${var.env}-frontend-tg"
+  name        = "${var.project_name}-${var.env}-front-tg"
   port        = var.container_port # The port the app runs on inside the container
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
@@ -309,7 +309,7 @@ resource "aws_lb_target_group" "frontend_app" {
   }
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-frontend-target-group"
+    Name        = "${var.project_name}-${var.env}-front-target-group"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Presentation"
@@ -328,7 +328,7 @@ resource "aws_lb_listener" "http_frontend" {
   }
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-public-alb-listener"
+    Name        = "${var.project_name}-${var.env}-pub-alb-listener"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Presentation"
@@ -337,7 +337,7 @@ resource "aws_lb_listener" "http_frontend" {
 
 # ECS Task Definition (describes how to run your Docker container)
 resource "aws_ecs_task_definition" "frontend_app" {
-  family                   = "${var.project_name}-${var.env}-frontend-task"
+  family                   = "${var.project_name}-${var.env}-front-task"
   requires_compatibilities = ["EC2"]
   network_mode             = "bridge" # EC2 launch type typically uses bridge or host
   cpu                      = 256      # Example: 0.25 vCPU
@@ -347,7 +347,7 @@ resource "aws_ecs_task_definition" "frontend_app" {
 
   container_definitions = jsonencode([
     {
-      name      = "${var.project_name}-${var.env}-frontend-container"
+      name      = "${var.project_name}-${var.env}-front-container"
       image     = "${aws_ecr_repository.frontend_app.repository_url}:latest"
       cpu       = 256
       memory    = 512
@@ -377,7 +377,7 @@ resource "aws_ecs_task_definition" "frontend_app" {
   ])
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-frontend-task-def"
+    Name        = "${var.project_name}-${var.env}-front-task-def"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Presentation"
@@ -386,7 +386,7 @@ resource "aws_ecs_task_definition" "frontend_app" {
 
 # ECS Service
 resource "aws_ecs_service" "frontend_app" {
-  name            = "${var.project_name}-${var.env}-frontend-service"
+  name            = "${var.project_name}-${var.env}-front-service"
   cluster         = aws_ecs_cluster.frontend.id
   task_definition = aws_ecs_task_definition.frontend_app.arn
   desired_count   = var.desired_capacity            # Number of tasks to run (adjust based on load)
@@ -395,12 +395,12 @@ resource "aws_ecs_service" "frontend_app" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.frontend_app.arn
-    container_name   = "${var.project_name}-${var.env}-frontend-container"
+    container_name   = "${var.project_name}-${var.env}-front-container"
     container_port   = var.container_port
   }
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-frontend-ecs-service"
+    Name        = "${var.project_name}-${var.env}-front-ecs-service"
     Project     = var.project_name
     Environment = var.env
     Layer       = "Presentation"
