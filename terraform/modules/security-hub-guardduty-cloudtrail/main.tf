@@ -98,7 +98,7 @@ resource "aws_s3_bucket_public_access_block" "cloudtrail_logs_block" {
 resource "aws_s3_bucket_policy" "cloudtrail_bucket_policy" {
   bucket = aws_s3_bucket.cloudtrail_logs.id
   policy = jsonencode({
-    Verion = "2012-10-17"
+    Version = "2012-10-17"
     Statement = [
       {
         Sid       = "AWSCloudTrailAclCheck"
@@ -132,7 +132,7 @@ resource "aws_cloudtrail" "main" {
   enable_log_file_validation    = true  # Ensure log integrity (CIS Benchmark)
 
   # Optional: Enable CloudWatch Logs integration for real-time monitoring and alerting
-  cloud_watch_logs_group_arn = aws_cloudwatch_log_group.cloudtrail_logs.arn
+  cloud_watch_logs_group_arn = "${aws_cloudwatch_log_group.cloudtrail_logs.arn}:*"
   cloud_watch_logs_role_arn  = aws_iam_role.cloudtrail_cloudwatch_role.arn
 
   tags = {

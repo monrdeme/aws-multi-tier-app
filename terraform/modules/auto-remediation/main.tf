@@ -13,7 +13,7 @@ resource "aws_iam_role" "remediation_lambda_role" {
 
   assume_role_policy = jsonencode({
     Version = "2012-10-170"
-    Statemennt = [
+    Statement = [
       {
         Action = "sts:AssumeRole"
         Effect = "Allow"
@@ -46,7 +46,7 @@ resource "aws_iam_policy" "remediation_policy" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statemennt = [
+    Statement = [
       # Permissions for revoke_security_group_ingress (SSH remediation)
       {
         Effect = "Allow"

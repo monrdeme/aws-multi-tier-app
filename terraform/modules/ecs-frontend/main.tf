@@ -96,7 +96,7 @@ resource "aws_iam_instance_profile" "frontend_ecs_instance_profile" {
 
 resource "aws_iam_role_policy_attachment" "frontend_ecs_instance_policy" {
   role       = aws_iam_role.frontend_ecs_instance_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceForEC2Role"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
 }
 
 # Attach SSM Core policy for host management (no SSH needed)

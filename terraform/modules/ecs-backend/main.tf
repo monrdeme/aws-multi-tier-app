@@ -236,7 +236,7 @@ resource "aws_autoscaling_group" "backend_ecs_asg" {
 
   launch_template {
     id      = aws_launch_template.backend_ecs_instance_template.id
-    version = "$$Latest"
+    version = "$Latest"
   }
 
   tag {
