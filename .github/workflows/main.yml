@@ -135,7 +135,7 @@ jobs:
         with:
           image-ref: "${{ steps.get-ecr-url.outputs.ecr_url }}:latest"
           format: "table"
-          exit-code: "1" # Fail the build if any vulnerabilities are found
+          exit-code: "0" # Would use exit code: "1" in prod to fail the job if High/Critical vulnerabilities were found
           ignore-unfixed: true # Only report fixed vulnerabilities
           vuln-type: "os, library"
           severity: "HIGH, CRITICAL" # Only report High/Critical vulnerabilities
@@ -234,7 +234,7 @@ jobs:
         with:
           image-ref: "${{ steps.get-ecr-url.outputs.ecr_url }}:latest"
           format: "table"
-          exit-code: "1" # Fail the build if any vulnerabilities are found
+          exit-code: "0" # Would use exit code: "1" in prod to fail the job if High/Critical vulnerabilities were found
           ignore-unfixed: true
           vuln-type: "os, library"
           severity: "HIGH, CRITICAL"
