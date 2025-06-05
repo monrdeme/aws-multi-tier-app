@@ -169,7 +169,7 @@ jobs:
         with:
           task-definition: terraform/modules/ecs-frontend/task-definition.json # You will create this below
           container-name: ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-frontend-container
-          image: ${{ steps.get-ecr-url.outputs.ecr_url }}:${{ github.sha }}
+          image: ${{ steps.get-ecr-url.outputs.ecr_url }}:latest
           environment-variables: |
             PORT=${{ steps.get-container-port.outputs.container_port }}
 
@@ -296,6 +296,9 @@ jobs:
             DB_HOST=${{ steps.get-db-host.outputs.db_host }}
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USER=${{ secrets.DB_USERNAME }}
+            TASK_FAMILY=${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend-task
+            EXECUTION_ROLE_ARN=arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/aws-multi-tier-app-dev-backend-task-execution-role
+            CONTAINER_NAME=${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend-container
           secrets: |
             DB_PASSWORD=${{ steps.get-db-secret-arn.outputs.db_secret_arn }}
 

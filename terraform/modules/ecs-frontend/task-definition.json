@@ -1,13 +1,13 @@
     {
         "family": "aws-multi-tier-app-dev-front-task",
         "networkMode": "bridge",
-        "executionRoleArn": "aws_iam_role.frontend_ecs_instance_role.arn",
+        "executionRoleArn": "REPLACE_EXECUTION_ROLE",
         "containerDefinitions": [
             {
                 "name": "aws-multi-tier-app-dev-frontend-container",
                 "image": "",
                 "cpu": 256,
-                "memory": 512,
+                "memory": 256,
                 "essential": true,
                 "portMappings": [
                     {
@@ -31,5 +31,5 @@
             "EC2"
         ],
         "cpu": "256",
-        "memory": "512"
+        "memory": "256"
     }
