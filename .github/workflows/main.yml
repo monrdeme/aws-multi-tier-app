@@ -290,7 +290,7 @@ jobs:
         with:
           task-definition: terraform/modules/ecs-backend/task-definition.json # You will create this below
           container-name: ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend-container
-          image: ${{ steps.get-ecr-url.outputs.ecr_url }}:${{ github.sha }}
+          image: ${{ steps.get-ecr-url.outputs.ecr_url }}:latest
           environment-variables: |
             PORT=${{ steps.get-container-port.outputs.container_port }}
             DB_HOST=${{ steps.get-db-host.outputs.db_host }}
