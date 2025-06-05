@@ -341,7 +341,7 @@ resource "aws_ecs_task_definition" "frontend_app" {
   requires_compatibilities = ["EC2"]
   network_mode             = "bridge" # EC2 launch type typically uses bridge or host
   cpu                      = 256      # Example: 0.25 vCPU
-  memory                   = 512      # Example: 512 MB
+  memory                   = 256      # Example: 256 MB
   execution_role_arn       = aws_iam_role.frontend_ecs_instance_role.arn
   task_role_arn            = aws_iam_role.frontend_ecs_task_execution_role.arn # Same role for simplicity for now
 
@@ -350,7 +350,7 @@ resource "aws_ecs_task_definition" "frontend_app" {
       name      = "${var.project_name}-${var.env}-front-container"
       image     = "${aws_ecr_repository.frontend_app.repository_url}:latest"
       cpu       = 256
-      memory    = 512
+      memory    = 256
       essential = true
       portMappings = [
         {
