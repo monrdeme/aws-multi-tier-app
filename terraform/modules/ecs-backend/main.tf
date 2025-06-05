@@ -24,7 +24,7 @@ resource "aws_ecr_repository" "backend_app" {
 
 # IAM Role for ECS Task Execution (allows ECS to pull images from ECR, log to CloudWatch, access Secrets Manager)
 resource "aws_iam_role" "backend_ecs_task_execution_role" {
-  name = "${var.project_name}-${var.env}-backend-ecs-task-role"
+  name = "${var.project_name}-${var.env}-backend-ecs-task-exec-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
