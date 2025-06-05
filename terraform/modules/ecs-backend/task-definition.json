@@ -1,6 +1,6 @@
 {
     "family": "aws-multi-tier-app-dev-backend-task",
-    "networkMode": "awsvpc",
+    "networkMode": "bridge",
     "executionRoleArn": "aws_iam_role.backend_ecs_task_execution_role.arn",
     "containerDefinitions": [
         {
