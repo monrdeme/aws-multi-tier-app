@@ -148,7 +148,7 @@ jobs:
       - name: Get ECS Cluster Name (Frontend)
         id: get-ecs-cluster
         run: |
-          ECS_CLUSTER=$(aws ecs describe-clusters --clusters "${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-frontend-cluster" --query "clusters[0].clusterName" --output text)
+          ECS_CLUSTER=$(aws ecs describe-clusters --clusters "${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-front-cluster" --query "clusters[0].clusterName" --output text)
           echo "ecs_cluster_name=$ECS_CLUSTER" >> "$GITHUB_OUTPUT"
 
       - name: Get ECS Service Name (Frontend)
