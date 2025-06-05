@@ -296,9 +296,6 @@ jobs:
             DB_HOST=${{ steps.get-db-host.outputs.db_host }}
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USER=${{ secrets.DB_USERNAME }}
-            TASK_FAMILY=${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend-task
-            EXECUTION_ROLE_ARN=arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/aws-multi-tier-app-dev-backend-task-execution-role
-            CONTAINER_NAME=${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend-container
           secrets: |
             DB_PASSWORD=${{ steps.get-db-secret-arn.outputs.db_secret_arn }}
 
