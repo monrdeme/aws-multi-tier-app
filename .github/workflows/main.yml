@@ -120,7 +120,7 @@ jobs:
       - name: Get ECR Repository URL (Frontend)
         id: get-ecr-url
         run: |
-          ECR_REPO_URL=$(aws ecr describe-repositories --repository-names "${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-frontend-app" --query "repositories[0].repositoryUri" --output text)
+          ECR_REPO_URL=$(aws ecr describe-repositories --repository-names "${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-front-app" --query "repositories[0].repositoryUri" --output text)
           echo "ecr_url=$ECR_REPO_URL" >> "$GITHUB_OUTPUT"
 
       - name: Build Docker Image (Frontend)
