@@ -1,25 +1,35 @@
-[
     {
-        "name": "aws-multi-tier-app-dev-frontend-container",
-        "image": "",
-        "cpu": 256,
-        "memory": 512,
-        "essential": true,
-        "portMappings": [
+        "family": "aws-multi-tier-app-dev-front-task",
+        "networkMode": "awsvpc",
+        "executionRoleArn": "aws_iam_role.frontend_ecs_instance_role.arn",
+        "containerDefinitions": [
             {
-                "containerPort": 8000,
-                "hostPort": 8000,
-                "protocol": "tcp"
+                "name": "aws-multi-tier-app-dev-frontend-container",
+                "image": "",
+                "cpu": 256,
+                "memory": 512,
+                "essential": true,
+                "portMappings": [
+                    {
+                        "containerPort": 8000,
+                        "hostPort": 8000,
+                        "protocol": "tcp"
+                    }
+                ],
+                "environment": [],
+                "logConfiguration": {
+                    "logDriver": "awslogs",
+                    "options": {
+                        "awslogs-group": "/ecs/aws-multi-tier-app-dev-frontend-app",
+                        "awslogs-region": "us-east-1",
+                        "awslogs-stream-prefix": "ecs-frontend"
+                    }
+                }
             }
         ],
-        "environment": [],
-        "logConfiguration": {
-            "logDriver": "awslogs",
-            "options": {
-                "awslogs-group": "/ecs/aws-multi-tier-app-dev-frontend-app",
-                "awslogs-region": "us-east-1",
-                "awslogs-stream-prefix": "ecs-frontend"
-            }
-        }
+        "requiresCompatibilities": [
+            "EC2"
+        ],
+        "cpu": "256",
+        "memory": "512"
     }
-]
