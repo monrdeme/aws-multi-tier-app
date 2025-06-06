@@ -11,6 +11,8 @@ COPY . .
 
 EXPOSE 5000
 
+ENV PYTHONPATH /app
+
 # Use Gunicorn to run your Flask application
 # 'app:app' means:
 #   'app' (first part): refers to your app.py file (the Python module)
