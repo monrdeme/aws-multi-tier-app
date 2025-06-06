@@ -369,7 +369,7 @@ resource "aws_ecs_task_definition" "backend_app" {
   requires_compatibilities = ["EC2"]
   network_mode             = "bridge"
   cpu                      = 256
-  memory                   = 256
+  memory                   = 512
   execution_role_arn       = aws_iam_role.backend_ecs_task_execution_role.arn
   task_role_arn            = aws_iam_role.backend_ecs_task_execution_role.arn
 
@@ -378,7 +378,7 @@ resource "aws_ecs_task_definition" "backend_app" {
       name      = "${var.project_name}-${var.env}-backend-container"
       image     = "${aws_ecr_repository.backend_app.repository_url}:latest"
       cpu       = 256
-      memory    = 256
+      memory    = 512
       essential = true
       portMappings = [
         {
