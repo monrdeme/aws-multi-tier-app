@@ -1,5 +1,6 @@
 {
     "family": "aws-multi-tier-app-dev-backend-task",
+    "executionRoleArn": "arn:aws:iam::445567070008:role/ecsTaskExecutionRole",
     "containerDefinitions": [
         {
             "name": "aws-multi-tier-app-dev-backend-container",
