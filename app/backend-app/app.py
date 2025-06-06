@@ -46,7 +46,7 @@ def db_test():
     else:
         return jsonify({"db_status": "Database connection failed."}), 500
     
-if __name__ == '__main__':
-    # Flask app listens on all available interfaces (0.0.0.0) on the specified port
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+# if __name__ == '__main__':
+#    # Flask app listens on all available interfaces (0.0.0.0) on the specified port
+#    port = int(os.environ.get("PORT", 5000))
+#    app.run(host='0.0.0.0', port=port)
