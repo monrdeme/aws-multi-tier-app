@@ -3,7 +3,7 @@
     "executionRoleArn": "arn:aws:iam::445567070008:role/aws-multi-tier-app-dev-front-ecs-task-exec-role",
     "containerDefinitions": [
         {
-            "name": "aws-multi-tier-app-dev-frontend-container",
+            "name": "aws-multi-tier-app-dev-front-container",
             "image": "",
             "cpu": 256,
             "memory": 256,

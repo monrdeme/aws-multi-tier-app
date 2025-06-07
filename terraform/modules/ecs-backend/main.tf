@@ -383,7 +383,7 @@ resource "aws_ecs_task_definition" "backend_app" {
       portMappings = [
         {
           containerPort = var.container_port
-          hostPort      = var.container_port
+          hostPort      = 0
           protocol      = "tcp"
         }
       ]

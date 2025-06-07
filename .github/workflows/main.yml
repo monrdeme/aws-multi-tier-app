@@ -168,7 +168,7 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: terraform/modules/ecs-frontend/task-definition.json # You will create this below
-          container-name: ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-frontend-container
+          container-name: ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-front-container
           image: ${{ steps.get-ecr-url.outputs.ecr_url }}:latest
           environment-variables: |
             PORT=${{ steps.get-container-port.outputs.container_port }}
