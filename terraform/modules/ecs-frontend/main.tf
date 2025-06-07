@@ -302,8 +302,8 @@ resource "aws_lb_target_group" "frontend_app" {
     path                = "/health" # Health check endpoint in Flask app
     protocol            = "HTTP"
     matcher             = "200"
-    interval            = 30
-    timeout             = 5
+    interval            = 60
+    timeout             = 15
     healthy_threshold   = 2
     unhealthy_threshold = 2
   }
