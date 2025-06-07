@@ -9,7 +9,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt gunicorn
 
 # Copy application code
 COPY . .
@@ -17,5 +17,7 @@ COPY . .
 # Expose the port your Flask app runs on
 EXPOSE 8000
 
+ENV PYTHONPATH /app
+
 # Run the Flask app
-CMD [ "python", "app.py" ]
+CMD [ "gunicorn", "-w", 4, "-b", "0.0.0.0:8000", "app.app" ]

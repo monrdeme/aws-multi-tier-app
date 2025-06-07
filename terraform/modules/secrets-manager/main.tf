@@ -2,11 +2,11 @@
 
 # Creates the container for the secret
 resource "aws_secretsmanager_secret" "db_master_password" {
-  name        = "${var.project_name}-${var.env}-rds-master-password-v5"
+  name        = "${var.project_name}-${var.env}-rds-master-password-v6"
   description = "RDS master password for the ${var.project_name}-${var.env} database"
 
   tags = {
-    Name        = "${var.project_name}-${var.env}-rds-master-password-v5"
+    Name        = "${var.project_name}-${var.env}-rds-master-password-v6"
     Project     = var.project_name
     Environment = var.env
   }
