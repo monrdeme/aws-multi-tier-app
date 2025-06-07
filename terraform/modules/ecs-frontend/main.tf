@@ -142,20 +142,10 @@ data "aws_ssm_parameter" "ecs_ami" {
   name = "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id"
 }
 
-data "aws_ami" "ecs_optimized" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "image-id"
-    values = [data.aws_ssm_parameter.ecs_ami.value]
-  }
-}
-
 # EC2 Launch Template for Frontend ECS Instances
 resource "aws_launch_template" "frontend_ecs_instance_template" {
-  name_prefix   = "${var.project_name}-${var.env}-front-ecs-lt-"
-  image_id      = data.aws_ami.ecs_optimized.id
+  name_prefix   = "${var.project_name}-${var.env}-front-ecs-lt"
+  image_id      = data.aws_ssm_parameter.ecs_ami.value
   instance_type = var.instance_type
   key_name      = "" # CIS Benchmark: No SSH key pair unless strictly necessary
 

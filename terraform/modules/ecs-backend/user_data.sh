@@ -11,8 +11,7 @@ yum update -y
 yum install -y aws-cli
 
 # Start the ECS agent
-sudo sysetmctl start ecs
-sudo systemctl enable ecs
+start ecs
 
 # Optionally, for debugging, you might want to log user data execution
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
