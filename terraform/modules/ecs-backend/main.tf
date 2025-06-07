@@ -136,10 +136,12 @@ resource "aws_security_group" "backend_ecs_instance_sg" {
   description = "Allows traffic from internal ALB to backend ECS instances and egress to RDS"
   vpc_id      = var.vpc_id
 
-  # Ingress from Internal ALB on container port
+  # Ingress from Internal ALB on the ephemeral port range
+  # Allow traffic on the ephemeral port range that ECS uses for dynamic port mappings
+  # Standard ephemeral port range: 32768-65535 (for Amazon Linux 2)
   ingress {
-    from_port       = var.container_port
-    to_port         = var.container_port
+    from_port       = 32768 # Starting port of the ephemeral range
+    to_port         = 65535 # Ending port of the ephemeral range
     protocol        = "tcp"
     security_groups = [aws_security_group.internal_alb_sg.id]
     description     = "Allow HTTP/app traffic from Internal ALB"
