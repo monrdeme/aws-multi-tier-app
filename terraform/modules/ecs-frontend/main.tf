@@ -113,8 +113,8 @@ resource "aws_security_group" "frontend_ecs_instance_sg" {
 
   # Ingress from ALB on container port
   ingress {
-    from_port       = var.container_port
-    to_port         = var.container_port
+    from_port       = 32768
+    to_port         = 65535
     protocol        = "tcp"
     security_groups = [aws_security_group.public_alb_sg.id]
     description     = "Allow HTTP/app traffic from Public ALB"
@@ -355,7 +355,7 @@ resource "aws_ecs_task_definition" "frontend_app" {
       portMappings = [
         {
           containerPort = var.container_port
-          hostPort      = var.container_port # Map container port to host port for bridge mode
+          hostPort      = 0
           protocol      = "tcp"
         }
       ]
