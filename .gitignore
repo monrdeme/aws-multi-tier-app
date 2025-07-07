@@ -1,0 +1,13 @@
+# Terraform state and backup files
+*.tfstate
+*.tfstate.backup
+
+# Terraform provider binaries and modules
+.terraform/
+.terraform.lock.hcl
+
+# Crash logs
+crash.log
+
+# Zip files (e.g., Lambda packages)
+*.zip
