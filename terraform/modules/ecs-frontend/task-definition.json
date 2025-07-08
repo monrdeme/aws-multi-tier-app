@@ -1,0 +1,29 @@
+{
+    "family": "aws-multi-tier-app-frontend-task",
+    "executionRoleArn": "arn:aws:iam::108728975069:role/aws-multi-tier-app-frontend-ecs-task-exec-role",
+    "containerDefinitions": [
+        {
+            "name": "aws-multi-tier-app-frontend-container",
+            "image": "",
+            "cpu": 256,
+            "memory": 256,
+            "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 8000,
+                    "hostPort": 0,
+                    "protocol": "tcp"
+                }
+            ],
+            "environment": [],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/aws-multi-tier-app-frontend-app",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs-frontend"
+                }
+            }
+        }
+    ]
+}

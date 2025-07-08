@@ -6,8 +6,3 @@
 .terraform/
 .terraform.lock.hcl
 
-# Crash logs
-crash.log
-
-# Zip files (e.g., Lambda packages)
-*.zip
