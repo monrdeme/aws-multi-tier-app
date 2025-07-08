@@ -1,0 +1,304 @@
+# .github/workflows/main.yml
+# CI/CD Pipeline with GitHub Actions for Multi-Tier ECS App
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**" # Trigger on changes in the 'app' directory
+      - "terraform/**" # Trigger on infrastructure changes
+      - ".github/workflows/main.yml" # Trigger on workflow changes
+  workflow_dispatch: # Allows manual trigger
+
+env:
+  AWS_REGION: us-east-1
+  NAME: aws-multi-tier-app
+
+jobs:
+  # ----------------------------------------
+  # Infrastructure (Terraform) Security Scan
+  # ----------------------------------------
+  iac-security-scan:
+    name: IaC Security Scan (Checkov)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Checkov Scan (All Terraform Modules)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform/ # Path to your Terraform modules
+          framework: terraform
+          output_format: cli
+          skip_check: CKV_AWS_21,CKV_AWS_28,CKV_AWS_48,CKV_AWS_126 # Example skips for common issues in dev
+          soft_fail: true # In prod would fail the workflow if Checkov finds issues but for dev purposes will allow pipeline to continue
+
+  # ----------------------------------------
+  # Infrastructure (Terraform) Management
+  # ----------------------------------------
+  terraform:
+    name: "Terraform Apply"
+    needs: iac-security-scan
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for OIDC
+      contents: read
+      pull-requests: write # To comment on PRs if using PR workflow
+
+    defaults:
+      run:
+        working-directory: terraform/root
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ env.NAME }}-github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0 # Use compatible Terraform version
+
+      - name: Terraform Init
+        id: init
+        run: terraform init -backend-config="bucket=tf-state-${{ env.NAME }}" -backend-config="key=root/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=tf-state-locks-${{ env.NAME }}"
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -input=false -var="aws_region=${{ env.AWS_REGION }}" -var="name=${{ env.NAME }}" -var="db_username=${{ secrets.DB_USERNAME }}" -var="db_name=${{ secrets.DB_NAME }}" -var="db_instance_type=${{ secrets.DB_INSTANCE_TYPE }}" -var="db_allocated_storage=${{ secrets.DB_ALLOCATED_STORAGE }}" -var="vpc_cidr=${{ secrets.VPC_CIDR }}" -var='public_subnet_cidrs=${{ secrets.PUBLIC_SUBNET_CIDRS }}' -var='private_app_subnet_cidrs=${{ secrets.PRIVATE_APP_SUBNET_CIDRS }}' -var='private_db_subnet_cidrs=${{ secrets.PRIVATE_DB_SUBNET_CIDRS }}' -var="frontend_container_port=${{ secrets.FRONTEND_CONTAINER_PORT }}" -var="frontend_instance_type=${{ secrets.FRONTEND_INSTANCE_TYPE }}" -var="frontend_desired_capacity=${{ secrets.FRONTEND_DESIRED_CAPACITY }}" -var="frontend_max_capacity=${{ secrets.FRONTEND_MAX_CAPACITY }}" -var="frontend_min_capacity=${{ secrets.FRONTEND_MIN_CAPACITY }}" -var="backend_container_port=${{ secrets.BACKEND_CONTAINER_PORT }}" -var="backend_instance_type=${{ secrets.BACKEND_INSTANCE_TYPE }}" -var="backend_desired_capacity=${{ secrets.BACKEND_DESIRED_CAPACITY }}" -var="backend_max_capacity=${{ secrets.BACKEND_MAX_CAPACITY }}" -var="backend_min_capacity=${{ secrets.BACKEND_MIN_CAPACITY }}" > plan.txt
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false -var="aws_region=${{ env.AWS_REGION }}" -var="name=${{ env.NAME }}" -var="db_username=${{ secrets.DB_USERNAME }}" -var="db_name=${{ secrets.DB_NAME }}" -var="db_instance_type=${{ secrets.DB_INSTANCE_TYPE }}" -var="db_allocated_storage=${{ secrets.DB_ALLOCATED_STORAGE }}" -var="vpc_cidr=${{ secrets.VPC_CIDR }}" -var='public_subnet_cidrs=${{ secrets.PUBLIC_SUBNET_CIDRS }}' -var='private_app_subnet_cidrs=${{ secrets.PRIVATE_APP_SUBNET_CIDRS }}' -var='private_db_subnet_cidrs=${{ secrets.PRIVATE_DB_SUBNET_CIDRS }}' -var="frontend_container_port=${{ secrets.FRONTEND_CONTAINER_PORT }}" -var="frontend_instance_type=${{ secrets.FRONTEND_INSTANCE_TYPE }}" -var="frontend_desired_capacity=${{ secrets.FRONTEND_DESIRED_CAPACITY }}" -var="frontend_max_capacity=${{ secrets.FRONTEND_MAX_CAPACITY }}" -var="frontend_min_capacity=${{ secrets.FRONTEND_MIN_CAPACITY }}" -var="backend_container_port=${{ secrets.BACKEND_CONTAINER_PORT }}" -var="backend_instance_type=${{ secrets.BACKEND_INSTANCE_TYPE }}" -var="backend_desired_capacity=${{ secrets.BACKEND_DESIRED_CAPACITY }}" -var="backend_max_capacity=${{ secrets.BACKEND_MAX_CAPACITY }}" -var="backend_min_capacity=${{ secrets.BACKEND_MIN_CAPACITY }}"
+
+  # ----------------------------------------
+  # Frontend Application CI/CD
+  # ----------------------------------------
+  frontend-build-scan-deploy:
+    name: Frontend Build, Scan & Deploy
+    needs: terraform # Ensure infrastructure is up-to-date
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for OIDC
+      contents: read
+
+    outputs:
+      ecr_repository: ${{ steps.get-ecr-url.outputs.ecr_url }}
+      ecs_cluster: ${{ steps.get-ecs-cluster.outputs.ecs_cluster_name }}
+      ecs_service: ${{ steps.get-ecs-service.outputs.ecs_service_name }}
+      container_port: ${{ steps.get-container-port.outputs.container_port }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ env.NAME }}-github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get ECR Repository URL (Frontend)
+        id: get-ecr-url
+        run: |
+          ECR_REPO_URL=$(aws ecr describe-repositories --repository-names "${{ env.NAME }}-frontend-app" --query "repositories[0].repositoryUri"  --output text)
+          echo "ecr_url=$ECR_REPO_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker Image (Frontend)
+        id: build-image
+        working-directory: app/frontend-app
+        run: |
+          docker build -t ${{ steps.get-ecr-url.outputs.ecr_url }}:latest .
+          docker tag ${{ steps.get-ecr-url.outputs.ecr_url }}:latest ${{ steps.get-ecr-url.outputs.ecr_url }}:${{ github.sha }}
+
+      - name: Trivy Scan (Frontend Docker Image)
+        uses: aquasecurity/trivy-action@0.17.0 # or latest stable release
+        with:
+          image-ref: "${{ steps.get-ecr-url.outputs.ecr_url }}:latest"
+          format: "table"
+          exit-code: "0" # Would use exit code: "1" in prod to fail the job if High/Critical vulnerabilities were found
+          ignore-unfixed: true # Only report fixed vulnerabilities
+          vuln-type: "os, library"
+          severity: "HIGH, CRITICAL" # Only report High/Critical vulnerabilities
+
+      - name: Push Docker Image (Frontend)
+        run: |
+          docker push ${{ steps.get-ecr-url.outputs.ecr_url }}:latest
+          docker push ${{ steps.get-ecr-url.outputs.ecr_url }}:${{ github.sha }}
+
+      - name: Get ECS Cluster Name (Frontend)
+        id: get-ecs-cluster
+        run: |
+          ECS_CLUSTER=$(aws ecs describe-clusters --clusters "${{ env.NAME }}-frontend-cluster" --query "clusters[0].clusterName" --output text)
+          echo "ecs_cluster_name=$ECS_CLUSTER" >> "$GITHUB_OUTPUT"
+
+      - name: Get ECS Service Name (Frontend)
+        id: get-ecs-service
+        run: |
+          ECS_SERVICE=$(aws ecs list-services --cluster "${{ steps.get-ecs-cluster.outputs.ecs_cluster_name }}" --query "serviceArns[?contains(@, 'frontend')][0]" --output text | awk -F'/' '{print $NF}')
+          echo "ecs_service_name=$ECS_SERVICE" >> "$GITHUB_OUTPUT"
+
+      - name: Get Frontend Container Port
+        id: get-container-port
+        run: |
+          CONTAINER_PORT=$(aws ecs describe-task-definition --task-definition "${{ env.NAME }}-frontend-task" --query "taskDefinition.containerDefinitions[0].portMappings[0].containerPort" --output text)
+          echo "container_port=$CONTAINER_PORT" >> "$GITHUB_OUTPUT"
+
+      - name: Fill in the new image ID in the Amazon ECS task definition (Frontend)
+        id: render-task-definition
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: terraform/modules/ecs-frontend/task-definition.json # You will create this below
+          container-name: ${{ env.NAME }}-frontend-container
+          image: ${{ steps.get-ecr-url.outputs.ecr_url }}:latest
+          environment-variables: |
+            PORT=${{ steps.get-container-port.outputs.container_port }}
+
+      - name: Deploy Amazon ECS task definition (Frontend)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-task-definition.outputs.task-definition }}
+          service: ${{ steps.get-ecs-service.outputs.ecs_service_name }}
+          cluster: ${{ steps.get-ecs-cluster.outputs.ecs_cluster_name }}
+          wait-for-service-stability: true # Wait for the new deployment to stabilize
+
+  # ----------------------------------------
+  # Backend Application CI/CD
+  # ----------------------------------------
+  backend-build-scan-deploy:
+    name: Backend Build, Scan & Deploy
+    needs: terraform # Ensure infrastructure is up-to-date
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for OIDC
+      contents: read
+
+    outputs:
+      ecr_repository: ${{ steps.get-ecr-url.outputs.ecr_url }}
+      ecs_cluster: ${{ steps.get-ecs-cluster.outputs.ecs_cluster_name }}
+      ecs_service: ${{ steps.get-ecs-service.outputs.ecs_service_name }}
+      container_port: ${{ steps.get-container-port.outputs.container_port }}
+      db_host: ${{ steps.get-db-host.outputs.db_host }}
+      db_name: ${{ secrets.DB_NAME }}
+      db_user: ${{ secrets.DB_USERNAME }}
+      db_secret_arn: ${{ steps.get-db-secret-arn.outputs.db_secret_arn }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ env.NAME }}-github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get ECR Repository URL (Backend)
+        id: get-ecr-url
+        run: |
+          ECR_REPO_URL=$(aws ecr describe-repositories --repository-names "${{ env.NAME }}-backend-app" --query "repositories[0].repositoryUri" --output text)
+          echo "ecr_url=$ECR_REPO_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker Image (Backend)
+        id: build-image
+        working-directory: app/backend-app
+        run: |
+          docker build -t ${{ steps.get-ecr-url.outputs.ecr_url }}:latest .
+          docker tag ${{ steps.get-ecr-url.outputs.ecr_url }}:latest ${{ steps.get-ecr-url.outputs.ecr_url }}:${{ github.sha }}
+
+      - name: Trivy Scan (Backend Docker Image)
+        uses: aquasecurity/trivy-action@0.17.0 # or latest stable release
+        with:
+          image-ref: "${{ steps.get-ecr-url.outputs.ecr_url }}:latest"
+          format: "table"
+          exit-code: "0" # Would use exit code: "1" in prod to fail the job if High/Critical vulnerabilities were found
+          ignore-unfixed: true
+          vuln-type: "os, library"
+          severity: "HIGH, CRITICAL"
+
+      - name: Bandit Scan (Backend Python Code)
+        # Path to your backend Python code
+        # Arguments to tailor scan. -r for recursive, -ll for low/medium/high, -f for output format
+        run: |
+          pip install bandit
+          bandit -r app/backend-app -ll -f json -o bandit-report.json
+        # Exit code is handled by Bandit itself, typically 0 for no issues, non-zero for issues.
+        continue-on-error: true # Would set to false to fail if Bandit found any issues in prod
+
+      - name: Push Docker Image (Backend)
+        run: |
+          docker push ${{ steps.get-ecr-url.outputs.ecr_url }}:latest
+          docker push ${{ steps.get-ecr-url.outputs.ecr_url}}:${{ github.sha }}
+
+      - name: Get ECS Cluster Name (Backend)
+        id: get-ecs-cluster
+        run: |
+          ECS_CLUSTER=$(aws ecs describe-clusters --clusters "${{ env.NAME }}-backend-cluster" --query "clusters[0].clusterName" --output text)
+          echo "ecs_cluster_name=$ECS_CLUSTER" >> "$GITHUB_OUTPUT"
+
+      - name: Get ECS Service Name (Backend)
+        id: get-ecs-service
+        run: |
+          ECS_SERVICE=$(aws ecs list-services --cluster "${{ steps.get-ecs-cluster.outputs.ecs_cluster_name }}" --query "serviceArns[?contains!@, 'backend')]" --output text | awk -F'/' '{print $NF}')
+          echo "ecs_service_name=$ECS_SERVICE" >> "$GITHUB_OUTPUT"
+
+      - name: Get Backend Container Port
+        id: get-container-port
+        run: |
+          CONTAINER_PORT=$(aws ecs describe-task-definition --task-definition "${{ env.NAME }}-backend-task" --query "taskDefinition.containerDefinitions[0].portMappings[0].containerPort" --output text)
+          echo "container_port=$CONTAINER_PORT" >> "$GITHUB_OUTPUT"
+
+      - name: Get RDS DB Host (Backend)
+        id: get-db-host
+        run: |
+          DB_HOST=$(aws rds describe-db-instances --db-instance-identifier "${{ env.NAME }}-db" --query "DBInstances[0].Endpoint.Address" --output text)
+          echo "db_host=$DB_HOST" >> "$GITHUB_OUTPUT"
+
+      - name: Get DB Secret ARN (Backend)
+        id: get-db-secret-arn
+        run: |
+          DB_SECRET_ARN=$(aws secretsmanager list-secrets --filters Key=name,Values=${{ env.NAME }}-rds-master-password-v31 --query "SecretList[0].ARN" --output text)
+          echo "db_secret_arn=$DB_SECRET_ARN" >> "$GITHUB_OUTPUT"
+
+      - name: Fill in the new image ID in the Amazon ECS task definition (Backend)
+        id: render-task-definition
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: terraform/modules/ecs-backend/task-definition.json # You will create this below
+          container-name: ${{ env.NAME }}-backend-container
+          image: ${{ steps.get-ecr-url.outputs.ecr_url }}:latest
+          environment-variables: |
+            PORT=${{ steps.get-container-port.outputs.container_port }}
+            DB_HOST=${{ steps.get-db-host.outputs.db_host }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_USER=${{ secrets.DB_USER }}
+          secrets: |
+            DB_PASSWORD=${{ steps.get-db-secret-arn.outputs.db_secret_arn }}:password::
+
+      - name: Deploy Amazon ECS task definition (Backend)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-task-definition.outputs.task-definition }}
+          service: ${{ steps.get-ecs-service.outputs.ecs_service_name }}
+          cluster: ${{ steps.get-ecs-cluster.outputs.ecs_cluster_name }}
+          wait-for-service-stability: true
