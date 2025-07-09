@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Write the ECS config file
-cat << EOF |sudo tee "etc/ecs/ecs.config" > /dev/null
+cat << EOF | sudo tee "/etc/ecs/ecs.config" > /dev/null
 ECS_CLUSTER=${ecs_cluster_name}
 ECS_ENABLE_CONTAINER_METADATA=true 
 ECS_CONTAINER_STOP_TIMEOUT=1m
