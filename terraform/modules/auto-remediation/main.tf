@@ -133,21 +133,11 @@ resource "aws_cloudwatch_event_rule" "ssh_remediation_rule" {
     "detail" : {
       "eventName" : ["AuthorizeSecurityGroupIngress"],
       "requestParameters" : {
-        "ipPermissions" : {
-          "items" : {
-            "ipRanges" : {
-              "item" : {
-                "cidrIp" : ["0.0.0.0/0"]
-              }
-            },
-            "fromPort" : [22],
-            "toPort" : [22],
-            "ipProtocol" : ["tcp", "-1"] # Match specific TCP 22 or all protocols allowing port 22
-          }
-        }
-      },
-      "responseElements" : {
-        "return" : [true] # Ensure the API call was successful
+        "ipPermissions" : [{
+          "ipRanges" : [{
+            "cidrIp" : ["0.0.0.0/0"]
+          }]
+        }]
       }
     }
   })
