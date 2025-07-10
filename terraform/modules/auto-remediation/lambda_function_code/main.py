@@ -35,6 +35,18 @@ def revoke_ssh_0_0_0_0_sg_rule(event):
         revoked_rules = []
 
         for perm in ip_permissions:
+            # Normalize ipRanges to always be a list
+            ip_ranges_raw = perm.get("ipRanges", {})
+
+            if isinstance(ip_ranges_raw, dict):
+                ip_ranges = ip_ranges_raw.get("item", [])
+                if isinstance(ip_ranges, dict):
+                    ip_ranges = [ip_ranges]
+            elif isinstance(ip_ranges_raw, list):
+                ip_ranges = ip_ranges_raw
+            else:
+                ip_ranges = []
+                
             # Check for SSH (port 22) and 0.0.0.0/0 CIDR
             if perm.get('fromPort') == 22 and perm.get('toPort') == 22 and perm.get('ipProtocol') == 'tcp':
                 ip_ranges = perm.get('ipRanges', [])
