@@ -131,14 +131,7 @@ resource "aws_cloudwatch_event_rule" "ssh_remediation_rule" {
     "source" : ["aws.ec2"],
     "detail-type" : ["AWS API Call via CloudTrail"],
     "detail" : {
-      "eventName" : ["AuthorizeSecurityGroupIngress"],
-      "requestParameters" : {
-        "ipPermissions" : [{
-          "ipRanges" : [{
-            "cidrIp" : ["0.0.0.0/0"]
-          }]
-        }]
-      }
+      "eventName" : ["AuthorizeSecurityGroupIngress"]
     }
   })
 
