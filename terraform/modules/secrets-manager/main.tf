@@ -2,11 +2,11 @@
 
 # Creates the container for the secret
 resource "aws_secretsmanager_secret" "db_master_password" {
-  name        = "${var.name}-rds-master-password-v34"
+  name        = "${var.name}-rds-master-password-v35"
   description = "RDS master password for the ${var.name}-database"
 
   tags = {
-    Name = "${var.name}-rds-master-password-v34"
+    Name = "${var.name}-rds-master-password-v35"
   }
 }
 # Stores the actual secret value

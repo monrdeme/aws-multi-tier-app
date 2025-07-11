@@ -277,7 +277,7 @@ jobs:
       - name: Get DB Secret ARN (Backend)
         id: get-db-secret-arn
         run: |
-          DB_SECRET_ARN=$(aws secretsmanager list-secrets --filters Key=name,Values=${{ env.NAME }}-rds-master-password-v34 --query "SecretList[0].ARN" --output text)
+          DB_SECRET_ARN=$(aws secretsmanager list-secrets --filters Key=name,Values=${{ env.NAME }}-rds-master-password-v35 --query "SecretList[0].ARN" --output text)
           echo "db_secret_arn=$DB_SECRET_ARN" >> "$GITHUB_OUTPUT"
 
       - name: Fill in the new image ID in the Amazon ECS task definition (Backend)
