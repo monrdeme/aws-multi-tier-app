@@ -1,5 +1,3 @@
-# terraform/modules/auto-remediation/lambda_function_code/main.py
-
 import json
 import os
 import boto3
@@ -27,7 +25,13 @@ def revoke_ssh_0_0_0_0_sg_rule(event):
         
         security_group_id = request_parameters.get('securityGroupId') or request_parameters.get('groupId')
 
-        ip_permissions = request_parameters.get('ipPermissions', [])
+        # Handle ipPermissions structure - it can be a dict with 'items' or a list
+        ip_permissions_raw = request_parameters.get('ipPermissions', [])
+        if isinstance(ip_permissions_raw, dict):
+            ip_permissions = ip_permissions_raw.get('items', [])
+        else:
+            ip_permissions = ip_permissions_raw
+            
         if not ip_permissions:
             print("No IP permissions found in event. Skipping.")
             return
@@ -41,12 +45,12 @@ def revoke_ssh_0_0_0_0_sg_rule(event):
             # Get IP ranges - handle different possible structures
             ip_ranges = []
             ip_ranges_raw = perm.get("ipRanges", [])
-
+            
             print(f"ip_ranges_raw type: {type(ip_ranges_raw)}, value: {ip_ranges_raw}")
-
+            
             if isinstance(ip_ranges_raw, dict):
-                # Handle case where ipRanges is a dict with 'item' key
-                items = ip_ranges_raw.get("item", [])
+                # Handle case where ipRanges is a dict with 'items' key (CloudTrail format)
+                items = ip_ranges_raw.get("items", [])
                 if isinstance(items, list):
                     ip_ranges = items
                 elif isinstance(items, dict):
@@ -64,9 +68,9 @@ def revoke_ssh_0_0_0_0_sg_rule(event):
                 
             # Check for SSH (port 22) and 0.0.0.0/0 CIDR
             if perm.get('fromPort') == 22 and perm.get('toPort') == 22 and perm.get('ipProtocol') == 'tcp':
-                ip_ranges = perm.get('ipRanges', [])
                 for ip_range in ip_ranges:
-                    if ip_range.get('cidrIp') == '0.0.0.0/0':
+                    # Ensure ip_range is a dict before calling .get()
+                    if isinstance(ip_range, dict) and ip_range.get('cidrIp') == '0.0.0.0/0':
                         print(f"Found SSH 0.0.0.0/0 rule in SG {security_group_id}. Attempting to revoke...")
                         try:
                             ec2_client.revoke_security_group_ingress(
@@ -81,11 +85,14 @@ def revoke_ssh_0_0_0_0_sg_rule(event):
                             else:
                                 print(f"Error revoking rule for {security_group_id}: {e}")
                                 raise
+                    elif not isinstance(ip_range, dict):
+                        print(f"ip_range is not a dict: {type(ip_range)}, value: {ip_range}")
+                        
             # Also check for ALL TCP or ALL protocols from 0.0.0.0/0 on port 22
             elif (perm.get('fromPort') == 22 and perm.get('toPort') == 22 and perm.get('ipProtocol') in ['tcp', '-1']):
-                ip_ranges = perm.get('ipRanges', [])
                 for ip_range in ip_ranges:
-                    if ip_range.get('cidrIp') == '0.0.0.0/0':
+                    # Ensure ip_range is a dict before calling .get()
+                    if isinstance(ip_range, dict) and ip_range.get('cidrIp') == '0.0.0.0/0':
                         print(f"Found broader rule (e.g., ALL TCP or ALL) for port 22 0.0.0.0/0 in SG {security_group_id}. Attempting to revoke...")
                         try:
                             ec2_client.revoke_security_group_ingress(
@@ -100,10 +107,12 @@ def revoke_ssh_0_0_0_0_sg_rule(event):
                             else:
                                 print(f"Error revoking broader rule for {security_group_id}: {e}")
                                 raise
+                    elif not isinstance(ip_range, dict):
+                        print(f"ip_range is not a dict: {type(ip_range)}, value: {ip_range}")
 
-            if not revoked_rules:
-                print(f"No problematic SSH 0.0.0.0/0 rules found in event for SG {security_group_id}.")
-            return {"status": "success", "revoked_rules": revoked_rules}
+        if not revoked_rules:
+            print(f"No problematic SSH 0.0.0.0/0 rules found in event for SG {security_group_id}.")
+        return {"status": "success", "revoked_rules": revoked_rules}
         
     except Exception as e:
         print(f"An error occurred during SSH remediation: {e}")
@@ -166,33 +175,3 @@ def stop_unapproved_ami_instance(event):
     except Exception as e:
         print(f"An error occurred during unapproved AMI remediation: {e}")
         return {"status": "failed", "error": str(e)}
-    
-def lambda_handler(event, context):
-    """
-    Main entry point for the Lambda function.
-    Dispatches to specific remediation functions based on the event source.
-    """
-    print(f"Lambda received event: {json.dumps(event, indent=2)}")
-
-    # Remediation for Security Group Ingress changes (CloudTrail)
-    if event.get('source') == 'aws.ec2' and event.get('detail', {}).get('eventName') == 'AuthorizeSecurityGroupIngress':
-        return revoke_ssh_0_0_0_0_sg_rule(event)
-    
-    # Remediation for Unapproved AMI launches (CloudTrail)
-    if event.get('source') == 'aws.ec2' and event.get('detail', {}).get('eventName') == 'RunInstances':
-        return stop_unapproved_ami_instance(event)
-    
-    # Add other remediation logic here based on event patterns
-    # Example for S3 public bucket (CIS 2.1 - S3 buckets should not allow public write access)
-    # if event.get('source') == 'aws.s3' and event.get('detail', {}).get('eventName') in ['PutBucketAcl', 'PutBucketPolicy']:
-    #     # Call a function to revert public access
-    #     pass
-
-    # Example for GuardDuty findings (e.g., IAMAccessAnalyzer:ExposedCredentials)
-    # if event.get('source') == 'aws.guardduty' and event.get('detail', {}).get('type').startswith('CredentialAccess:IAMUser'):
-    #     # Call a function to remediate exposed credentials (e.g., disable/revoke keys)
-    #     pass
-
-    print("No matching remediation logic found for this event.")
-    return {"status": "no_action_taken", "message": "Event did not match any known remediation patterns,"}
-
