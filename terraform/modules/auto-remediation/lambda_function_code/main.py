@@ -42,6 +42,11 @@ def revoke_ssh_0_0_0_0_sg_rule(event):
             # Debug: Print the permission structure
             print(f"Processing permission: {json.dumps(perm, indent=2)}")
             
+            # Ensure perm is a dictionary before proceeding
+            if not isinstance(perm, dict):
+                print(f"Permission is not a dict: {type(perm)}, value: {perm}")
+                continue
+            
             # Get IP ranges - handle different possible structures
             ip_ranges = []
             ip_ranges_raw = perm.get("ipRanges", [])
@@ -69,46 +74,125 @@ def revoke_ssh_0_0_0_0_sg_rule(event):
             # Check for SSH (port 22) and 0.0.0.0/0 CIDR
             if perm.get('fromPort') == 22 and perm.get('toPort') == 22 and perm.get('ipProtocol') == 'tcp':
                 for ip_range in ip_ranges:
-                    # Ensure ip_range is a dict before calling .get()
-                    if isinstance(ip_range, dict) and ip_range.get('cidrIp') == '0.0.0.0/0':
+                    print(f"Processing ip_range: {type(ip_range)}, value: {ip_range}")
+                    
+                    # Handle different ip_range formats
+                    cidr_ip = None
+                    if isinstance(ip_range, dict):
+                        cidr_ip = ip_range.get('cidrIp')
+                    elif isinstance(ip_range, str):
+                        # Sometimes the CIDR might be directly as a string
+                        cidr_ip = ip_range
+                    else:
+                        print(f"Unexpected ip_range type: {type(ip_range)}, value: {ip_range}")
+                        continue
+                    
+                    if cidr_ip == '0.0.0.0/0':
                         print(f"Found SSH 0.0.0.0/0 rule in SG {security_group_id}. Attempting to revoke...")
                         try:
+                            # Try to revoke using the exact permission structure
+                            revoke_permission = {
+                                'IpProtocol': perm.get('ipProtocol'),
+                                'FromPort': perm.get('fromPort'),
+                                'ToPort': perm.get('toPort'),
+                                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]
+                            }
+                            
+                            # Add description if it exists
+                            if isinstance(ip_range, dict) and ip_range.get('description'):
+                                revoke_permission['IpRanges'][0]['Description'] = ip_range.get('description')
+                            
+                            print(f"Revoking with permission: {json.dumps(revoke_permission, indent=2)}")
+                            
                             ec2_client.revoke_security_group_ingress(
                                 GroupId=security_group_id,
-                                IpPermissions=[perm] # Revoke the exact permission
+                                IpPermissions=[revoke_permission]
                             )
                             revoked_rules.append(f"Revoked SSH 0.0.0.0/0 from {security_group_id}")
                             print(f"Successfully revoked SSH 0.0.0.0/0 from {security_group_id}")
+                            
                         except ClientError as e:
                             if e.response['Error']['Code'] == 'InvalidPermission.NotFound':
                                 print(f"Rule already removed or not found: {e}")
                             else:
                                 print(f"Error revoking rule for {security_group_id}: {e}")
-                                raise
-                    elif not isinstance(ip_range, dict):
-                        print(f"ip_range is not a dict: {type(ip_range)}, value: {ip_range}")
-                        
+                                
+                                # Try alternative approach using rule ID if available
+                                if 'securityGroupRuleSet' in response_elements:
+                                    rule_set = response_elements['securityGroupRuleSet']
+                                    if isinstance(rule_set, dict) and 'items' in rule_set:
+                                        for rule_item in rule_set['items']:
+                                            if (isinstance(rule_item, dict) and 
+                                                rule_item.get('fromPort') == 22 and 
+                                                rule_item.get('toPort') == 22 and
+                                                rule_item.get('cidrIpv4') == '0.0.0.0/0'):
+                                                
+                                                rule_id = rule_item.get('securityGroupRuleId')
+                                                if rule_id:
+                                                    try:
+                                                        print(f"Attempting to revoke using rule ID: {rule_id}")
+                                                        ec2_client.revoke_security_group_ingress(
+                                                            GroupId=security_group_id,
+                                                            SecurityGroupRuleIds=[rule_id]
+                                                        )
+                                                        revoked_rules.append(f"Revoked SSH 0.0.0.0/0 from {security_group_id} using rule ID")
+                                                        print(f"Successfully revoked using rule ID: {rule_id}")
+                                                        break
+                                                    except ClientError as rule_e:
+                                                        print(f"Error revoking with rule ID {rule_id}: {rule_e}")
+                                else:
+                                    print(f"Could not revoke rule: {e}")
+                                    raise
+                        except Exception as e:
+                            print(f"Unexpected error during revocation: {e}")
+                            raise
+                            
             # Also check for ALL TCP or ALL protocols from 0.0.0.0/0 on port 22
             elif (perm.get('fromPort') == 22 and perm.get('toPort') == 22 and perm.get('ipProtocol') in ['tcp', '-1']):
                 for ip_range in ip_ranges:
-                    # Ensure ip_range is a dict before calling .get()
-                    if isinstance(ip_range, dict) and ip_range.get('cidrIp') == '0.0.0.0/0':
+                    print(f"Processing broader rule ip_range: {type(ip_range)}, value: {ip_range}")
+                    
+                    # Handle different ip_range formats
+                    cidr_ip = None
+                    if isinstance(ip_range, dict):
+                        cidr_ip = ip_range.get('cidrIp')
+                    elif isinstance(ip_range, str):
+                        cidr_ip = ip_range
+                    else:
+                        print(f"Unexpected ip_range type: {type(ip_range)}, value: {ip_range}")
+                        continue
+                    
+                    if cidr_ip == '0.0.0.0/0':
                         print(f"Found broader rule (e.g., ALL TCP or ALL) for port 22 0.0.0.0/0 in SG {security_group_id}. Attempting to revoke...")
                         try:
+                            # Try to revoke using the exact permission structure
+                            revoke_permission = {
+                                'IpProtocol': perm.get('ipProtocol'),
+                                'FromPort': perm.get('fromPort'),
+                                'ToPort': perm.get('toPort'),
+                                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]
+                            }
+                            
+                            # Add description if it exists
+                            if isinstance(ip_range, dict) and ip_range.get('description'):
+                                revoke_permission['IpRanges'][0]['Description'] = ip_range.get('description')
+                            
                             ec2_client.revoke_security_group_ingress(
                                 GroupId=security_group_id,
-                                IpPermissions=[perm]
+                                IpPermissions=[revoke_permission]
                             )
                             revoked_rules.append(f"Revoked broader port 22 0.0.0.0/0 rule from {security_group_id}")
-                            print(f"Successfully revoked broader port 22 0.0.0.0/0 rule from  {security_group_id}")
+                            print(f"Successfully revoked broader port 22 0.0.0.0/0 rule from {security_group_id}")
+                            
                         except ClientError as e:
                             if e.response['Error']['Code'] == 'InvalidPermission.NotFound':
                                 print(f"Rule already removed or not found: {e}")
                             else:
                                 print(f"Error revoking broader rule for {security_group_id}: {e}")
                                 raise
-                    elif not isinstance(ip_range, dict):
-                        print(f"ip_range is not a dict: {type(ip_range)}, value: {ip_range}")
+                        except Exception as e:
+                            print(f"Unexpected error during broader rule revocation: {e}")
+                            raise
 
         if not revoked_rules:
             print(f"No problematic SSH 0.0.0.0/0 rules found in event for SG {security_group_id}.")
@@ -147,6 +231,11 @@ def stop_unapproved_ami_instance(event):
         remediated_instances = []
 
         for instance in instances:
+            # Ensure instance is a dictionary before proceeding
+            if not isinstance(instance, dict):
+                print(f"Instance is not a dict: {type(instance)}, value: {instance}")
+                continue
+                
             instance_id = instance.get('instanceId')
             ami_id = instance.get('ImageId')
 
@@ -175,3 +264,26 @@ def stop_unapproved_ami_instance(event):
     except Exception as e:
         print(f"An error occurred during unapproved AMI remediation: {e}")
         return {"status": "failed", "error": str(e)}
+
+def lambda_handler(event, context):
+    """
+    Main Lambda handler that routes events to appropriate remediation functions
+    """
+    try:
+        print(f"Lambda received event: {json.dumps(event, indent=2)}")
+        
+        # Determine the event type and route to appropriate function
+        detail = event.get('detail', {})
+        event_name = detail.get('eventName', '')
+        
+        if event_name == 'AuthorizeSecurityGroupIngress':
+            return revoke_ssh_0_0_0_0_sg_rule(event)
+        elif event_name == 'RunInstances':
+            return stop_unapproved_ami_instance(event)
+        else:
+            print(f"Unhandled event type: {event_name}")
+            return {"status": "ignored", "message": f"Event type {event_name} not handled"}
+            
+    except Exception as e:
+        print(f"Error in lambda_handler: {e}")
+        return {"status": "error", "message": str(e)}
