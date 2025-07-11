@@ -35,17 +35,32 @@ def revoke_ssh_0_0_0_0_sg_rule(event):
         revoked_rules = []
 
         for perm in ip_permissions:
-            # Normalize ipRanges to always be a list
-            ip_ranges_raw = perm.get("ipRanges", {})
+            # Debug: Print the permission structure
+            print(f"Processing permission: {json.dumps(perm, indent=2)}")
+            
+            # Get IP ranges - handle different possible structures
+            ip_ranges = []
+            ip_ranges_raw = perm.get("ipRanges", [])
+
+            print(f"ip_ranges_raw type: {type(ip_ranges_raw)}, value: {ip_ranges_raw}")
 
             if isinstance(ip_ranges_raw, dict):
-                ip_ranges = ip_ranges_raw.get("item", [])
-                if isinstance(ip_ranges, dict):
-                    ip_ranges = [ip_ranges]
+                # Handle case where ipRanges is a dict with 'item' key
+                items = ip_ranges_raw.get("item", [])
+                if isinstance(items, list):
+                    ip_ranges = items
+                elif isinstance(items, dict):
+                    ip_ranges = [items]
+                else:
+                    print(f"Unexpected items type: {type(items)}, value: {items}")
+                    ip_ranges = []
             elif isinstance(ip_ranges_raw, list):
                 ip_ranges = ip_ranges_raw
             else:
+                print(f"Unexpected ip_ranges_raw type: {type(ip_ranges_raw)}")
                 ip_ranges = []
+                
+            print(f"Final ip_ranges: {ip_ranges}")
                 
             # Check for SSH (port 22) and 0.0.0.0/0 CIDR
             if perm.get('fromPort') == 22 and perm.get('toPort') == 22 and perm.get('ipProtocol') == 'tcp':
