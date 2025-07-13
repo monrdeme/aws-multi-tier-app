@@ -144,23 +144,13 @@ resource "aws_cloudwatch_event_rule" "ssh_remediation_rule" {
 # CloudWatch Event Rule for Unapproved AMI Remediation
 resource "aws_cloudwatch_event_rule" "unapproved_ami_remediation_rule" {
   name        = "${var.name}-unapproved-ami-remediation-rule"
-  description = "Triggers on EC2 RunInstances if AMI is not approved"
+  description = "Triggers on all EC2 RunInstances for AMI validation"
 
   event_pattern = jsonencode({
     "source" : ["aws.ec2"],
     "detail-type" : ["AWS API Call via CloudTrail"],
     "detail" : {
-      "eventName" : ["RunInstances"],
-      "responseElements" : {
-        "InstancesSet" : {
-          "Items" : {
-            "ImageId" : [{ "anything-but" : data.aws_ami.ecs_optimized_ami_id.id }] # Trigger if imageId is NOT the approved one
-          }
-        }
-      },
-      "userIdentity" : {
-        "type" : ["IAMUser", "Root", "AssumedRole"] # Trigger for specific user types
-      }
+      "eventName" : ["RunInstances"]
     }
   })
 
