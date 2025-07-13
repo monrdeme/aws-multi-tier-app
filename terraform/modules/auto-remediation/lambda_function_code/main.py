@@ -205,16 +205,13 @@ def revoke_ssh_0_0_0_0_sg_rule(event):
         return {"status": "failed", "error": str(e)}
     
 def stop_unapproved_ami_instance(event):
-    """"
+    """
     Remediates EC2 instances launched with an unapproved AMI.
     Triggered by CloudTrail event 'RunInstances'.
     """
     print(f"Received event for unapproved AMI remediation: {json.dumps(event, indent=2)}")
 
-    # Define your list of approved AMI IDs (replace with your actual approved AMIs)
-    # In a real scenario, this would come from a configuration source (SSM Parameter Store, DynamoDB, etc.)
-    # For this example, we'll use the specific ECS Optimized AMI used in the Terraform as the "approved" one
-    # and assume any other AMI is unapproved.
+    # Define your list of approved AMI IDs
     approved_ami_ids = [os.environ.get('APPROVED_AMI_ID')]                     
     if not approved_ami_ids or approved_ami_ids == ['']:
         print("APPROVED_AMI_ID environment variable not set. Remediation cannot proceed.")
@@ -225,9 +222,38 @@ def stop_unapproved_ami_instance(event):
         request_parameters = detail['requestParameters']
         response_elements = detail['responseElements']
 
+        # FIXED: Extract AMI ID from the correct location
+        ami_id = None
+        
+        # First, try direct lookup (for other API calls)
+        ami_id = request_parameters.get('imageId')
+        
+        # If not found, check nested in instancesSet (for RunInstances API call)
+        if not ami_id and 'instancesSet' in request_parameters:
+            instances_set = request_parameters['instancesSet']
+            if 'items' in instances_set and len(instances_set['items']) > 0:
+                first_instance = instances_set['items'][0]
+                ami_id = first_instance.get('imageId')
+        
+        if not ami_id:
+            print("No AMI ID found in requestParameters. Checking available keys...")
+            print(f"Available keys in requestParameters: {list(request_parameters.keys())}")
+            return {"status": "skipped", "message": "No AMI ID found in event"}
+
+        print(f"AMI ID from request: {ami_id}")
+        print(f"Approved AMI IDs: {approved_ami_ids}")
+
+        # Check if AMI is approved
+        if ami_id in approved_ami_ids:
+            print(f"AMI {ami_id} is approved. No action needed.")
+            return {"status": "approved", "ami_id": ami_id}
+
+        print(f"AMI {ami_id} is NOT approved. Proceeding with remediation.")
+
+        # Get instances from response
         if 'instancesSet' not in response_elements or 'items' not in response_elements['instancesSet']:
             print("No instances found in event. Skipping.")
-            return
+            return {"status": "skipped", "message": "No instances found in event"}
         
         instances = response_elements['instancesSet']['items']
         remediated_instances = []
@@ -239,33 +265,48 @@ def stop_unapproved_ami_instance(event):
                 continue
                 
             instance_id = instance.get('instanceId')
-            ami_id = instance.get('ImageId')
+            if not instance_id:
+                print("No instance ID found in instance data")
+                continue
 
-            if ami_id and ami_id not in approved_ami_ids:
-                print(f"Instance {instance_id} launched with unapproved AMI: {ami_id}. Stopping instance.")
-                try:
-                    # Verify instance is still running before stopping
-                    response = ec2_client.describe_instances(InstanceIds=[instance_id])
-                    current_state = response['Reservations'][0]['Instances'][0]['State']['Name']
+            print(f"Processing instance {instance_id} launched with unapproved AMI: {ami_id}")
+            
+            try:
+                # Verify instance exists and get current state
+                response = ec2_client.describe_instances(InstanceIds=[instance_id])
+                
+                if not response['Reservations']:
+                    print(f"Instance {instance_id} not found in describe_instances response")
+                    continue
+                    
+                current_state = response['Reservations'][0]['Instances'][0]['State']['Name']
+                print(f"Instance {instance_id} current state: {current_state}")
 
-                    if current_state == 'running':
-                        ec2_client.stop_instances(InstanceIds=[instance_id])
-                        remediated_instances.append(f"Stopped instance {instance_id} (AMI: {ami_id})")
-                        print(f"Successfully stopped instance {instance_id}.")
-                    else:
-                        print(f"Instance {instance_id} is already in state '{current_state}'. Not stopping.")
+                if current_state in ['running', 'pending']:
+                    print(f"Stopping instance {instance_id}...")
+                    ec2_client.stop_instances(InstanceIds=[instance_id])
+                    remediated_instances.append(f"Stopped instance {instance_id} (AMI: {ami_id})")
+                    print(f"Successfully stopped instance {instance_id}.")
+                else:
+                    print(f"Instance {instance_id} is in state '{current_state}'. Not stopping.")
+                    remediated_instances.append(f"Instance {instance_id} already in state '{current_state}' (AMI: {ami_id})")
 
-                except ClientError as e:
-                    print(f"Error stopping instances {instance_id}: {e}")
-                    raise
-            else:
-                print(f"Instance {instance_id} launched with approved AMI: {ami_id}. No action needed.")
+            except ClientError as e:
+                error_msg = f"Error processing instance {instance_id}: {e}"
+                print(error_msg)
+                remediated_instances.append(error_msg)
+                # Don't raise here, continue with other instances
+            except Exception as e:
+                error_msg = f"Unexpected error processing instance {instance_id}: {e}"
+                print(error_msg)
+                remediated_instances.append(error_msg)
 
-        return {"status": "success", "remediated_instances": remediated_instances}
+        return {"status": "success", "ami_id": ami_id, "remediated_instances": remediated_instances}
     
-    except Exception as e:
-        print(f"An error occurred during unapproved AMI remediation: {e}")
-        return {"status": "failed", "error": str(e)}
+    except KeyError as e:
+        error_msg = f"Missing required key in event structure: {e}"
+        print(error_msg)
+        return {"status": "failed", "error": error_msg}
 
 def lambda_handler(event, context):
     """
@@ -289,3 +330,7 @@ def lambda_handler(event, context):
     except Exception as e:
         print(f"Error in lambda_handler: {e}")
         return {"status": "error", "message": str(e)}
+    except Exception as e:
+        error_msg = f"An error occurred during unapproved AMI remediation: {e}"
+        print(error_msg)
+        return {"status": "failed", "error": error_msg}

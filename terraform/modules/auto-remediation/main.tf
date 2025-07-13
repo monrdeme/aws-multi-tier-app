@@ -53,6 +53,16 @@ resource "aws_iam_policy" "remediation_policy" {
         ]
         Resource = "*" # Restrict to instances in specific VPCs/subnets if known
       },
+      # Permissions for stop_unapproved_ami_instance (AMI remediation)
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:DescribeInstances",
+          "ec2:StopInstances",
+          "ec2:DescribeInstanceStatus"
+        ]
+        Resource = "*" # Restrict to specific instances/regions if known
+      },
       # Permissions for S3 remediation (if implemented)
       # {
       #   Effect = "Allow"
