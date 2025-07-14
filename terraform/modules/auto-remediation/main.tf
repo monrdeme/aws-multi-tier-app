@@ -59,6 +59,7 @@ resource "aws_iam_policy" "remediation_policy" {
         Action = [
           "ec2:DescribeInstances",
           "ec2:StopInstances",
+          "ec2:TerminateInstances",
           "ec2:DescribeInstanceStatus"
         ]
         Resource = "*" # Restrict to specific instances/regions if known

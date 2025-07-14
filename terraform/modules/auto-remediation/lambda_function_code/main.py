@@ -282,13 +282,18 @@ def stop_unapproved_ami_instance(event):
                 current_state = response['Reservations'][0]['Instances'][0]['State']['Name']
                 print(f"Instance {instance_id} current state: {current_state}")
 
-                if current_state in ['running', 'pending']:
+                if current_state == 'running':
                     print(f"Stopping instance {instance_id}...")
                     ec2_client.stop_instances(InstanceIds=[instance_id])
                     remediated_instances.append(f"Stopped instance {instance_id} (AMI: {ami_id})")
                     print(f"Successfully stopped instance {instance_id}.")
+                elif current_state == 'pending':
+                    print(f"Instance {instance_id} is still starting up. Terminating instead...")
+                    ec2_client.terminate_instances(InstanceIds=[instance_id])
+                    remediated_instances.append(f"Terminated instance {instance_id} (AMI: {ami_id}) - was in pending state")
+                    print(f"Successfully terminated instance {instance_id}.")
                 else:
-                    print(f"Instance {instance_id} is in state '{current_state}'. Not stopping.")
+                    print(f"Instance {instance_id} is in state '{current_state}'. No action needed.")
                     remediated_instances.append(f"Instance {instance_id} already in state '{current_state}' (AMI: {ami_id})")
 
             except ClientError as e:
