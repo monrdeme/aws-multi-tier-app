@@ -41,19 +41,46 @@ All infrastructure is defined and managed using Terraform, ensuring consistency,
     * **AWS GuardDuty:** Intelligent threat detection.
     * **AWS Security Hub:** Centralized security posture management and compliance checks.
     * **AWS CloudTrail:** API activity logging for auditing and governance.
-    * **AWS Lambda for Auto-Remediation:** Automated response to security findings (e.g., stopping non-compliant instances).
+    * **AWS Lambda for Auto-Remediation:** Automated response to security findings (e.g., stopping and terminating non-compliant instances).
     * **SSM Session Manager:** Secure, auditable access to EC2 instances without SSH keys or bastion hosts.
 
 ## DevSecOps Philosophy
 
-This project champions a "security-first" mindset, integrating automated security testing and monitoring at every stage of the development and deployment pipeline. By shifting security "left," we aim to identify and remediate vulnerabilities early, reducing risk and improving the overall security posture of the application and its infrastructure.
+This project encompasses a "security-first" mindset, integrating automated security testing and monitoring at every stage of the development and deployment pipeline. By shifting security "left," we aim to identify and remediate vulnerabilities early, reducing risk and improving the overall security posture of the application and its infrastructure.
 
-## Getting Started
+## Prerequisites
 
 To explore or deploy this project, you will need:
 
 * An AWS Account
-* A GitHub Account
-* Terraform CLI installed
+* Terraform installed (v1.3+ recommended)
+* Python 3.8+ with boto3 installed
 * Docker Desktop installed
+* Git installed
+* GitHub Repository set up and linked locally
 * AWS CLI configured with appropriate permissions
+
+---
+
+## Table of Contents
+
+* [AWS Multi-Tier Application](#aws-devsecops-multi-tier-application)
+    * [Overview](#overview)
+    * [Architecture](#architecture)
+    * [Key Features & Technologies](#key-features--technologies)
+    * [DevSecOps Philosophy](#devsecops-philosophy)
+    * [Prerequisites](#prerequisites)
+    * [Project Directory Structure](#project-directory-structure)
+    * [Deployment Walkthrough](#deployment-walkthrough)
+        * [Part 1: Initial AWS Account Setup & Terraform Backend](#part-1-initial-aws-account-setup--terraform-backend)
+        * [Part 2: Core VPC Infrastructure](#part-2-core-vpc-infrastructure)
+        * [Part 3: AWS RDS Database Deployment](#part-3-aws-rds-database-deployment)
+        * [Part 4: ECS Cluster & Application Services (Frontend & Backend)](#part-4-ecs-cluster--application-services-frontend--backend)
+        * [Part 5: AWS Security Services Integration (GuardDuty, Security Hub, CloudTrail)](#part-5-aws-security-services-integration-guardduty-security-hub-cloudtrail)
+        * [Part 6: Auto-Remediation with AWS Lambda](#part-6-auto-remediation-with-aws-lambda)
+        * [Part 7: DevSecOps Pipeline (GitHub Actions CI/CD)](#part-7-devsecops-pipeline-github-actions-cicd)
+    * [Testing & Verification](#testing--verification)
+        * [Verifying Frontend Access](#verifying-frontend-access)
+        * [Testing Backend DB Connection via SSM Session Manager](#testing-backend-db-connection-via-ssm-session-manager)
+    * [Cleanup](#cleanup)
+    * [Further Enhancements](#further-enhancements)
