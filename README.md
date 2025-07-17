@@ -5,7 +5,6 @@ This repository contains the infrastructure and application code for a robust, m
 
 ## Table of Contents
 
-* [AWS Multi-Tier Application](#aws-devsecops-multi-tier-application)
 * [Overview](#overview)
 * [Architecture](#architecture)
 * [Key Features & Technologies](#key-features--technologies)
