@@ -84,3 +84,67 @@ To explore or deploy this project, you will need:
         * [Testing Backend DB Connection via SSM Session Manager](#testing-backend-db-connection-via-ssm-session-manager)
     * [Cleanup](#cleanup)
     * [Further Enhancements](#further-enhancements)
+ 
+---
+
+## Deployment Walkthrough
+
+```
+├── .github/
+│   └── workflows/
+│       └── main.yml           # GitHub Actions workflow for CI/CD
+├── app/
+│   ├── frontend-app/
+│   │   ├── app.py             # Flask app for presentation layer
+│   │   ├── Dockerfile         # Dockerfile for frontend application
+│   │   └── requirements.txt   # Python dependencies for frontend
+│   ├── backend-app/
+│   │   ├── app.py             # Flask app for application layer
+│   │   ├── Dockerfile         # Dockerfile for backend application
+│   │   └── requirements.txt   # Python dependencies for backend
+├── terraform/
+│   ├── root/                    # Root module for the entire infrastructure deployment
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   ├── outputs.tf
+│   │   └── versions.tf
+│   ├── modules/
+│   │   ├── vpc/                 # VPC module for network infrastructure
+│   │   │   ├── main.tf
+│   │   │   ├── variables.tf
+│   │   │   └── outputs.tf
+│   │   ├── rds/                 # RDS module for PostgreSQL database
+│   │   │   ├── main.tf
+│   │   │   ├── variables.tf
+│   │   │   └── outputs.tf
+│   │   ├── secrets-manager/     # Secrets Manager module (for DB credentials)
+│   │   │   ├── main.tf
+│   │   │   ├── variables.tf
+│   │   │   └── outputs.tf
+│   │   ├── ecs-frontend/        # ECS Frontend (Public) module
+│   │   │   ├── main.tf
+│   │   │   ├── variables.tf
+│   │   │   ├── outputs.tf
+│   │   │   ├── user_data.sh
+│   │   │   └── task-definition.json
+│   │   ├── ecs-backend/         # ECS Backend (Private) module
+│   │   │   ├── main.tf
+│   │   │   ├── variables.tf
+│   │   │   ├── outputs.tf
+│   │   │   ├── user_data.sh
+│   │   │   └── task-definition.json
+│   │   ├── cloudwatch-logs/     # CloudWatch Logs module for centralized logging
+│   │   │   ├── main.tf
+│   │   │   ├── variables.tf
+│   │   │   └── outputs.tf
+│   │   ├── security-monitoring/ # Central security services module
+│   │   │   ├── main.tf
+│   │   │   ├── variables.tf
+│   │   │   └── outputs.tf
+│   │   ├── auto-remediation/    # Auto-remediation Lambda module
+│   │   │   ├── main.tf
+│   │   │   ├── variables.tf
+│   │   │   ├── outputs.tf
+│   │   │   └── lambda_function_code/ # Lambda function Python code
+│   │   │       └── main.py
+```
