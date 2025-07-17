@@ -39,6 +39,8 @@ All infrastructure is defined and managed using Terraform, ensuring consistency,
 
 ---
 
+## Architecture Diagram
+
 [![Multi-Tier-Architecture-Diagram-drawio.png](https://i.postimg.cc/X7Skv6DW/Multi-Tier-Architecture-Diagram-drawio.png)](https://postimg.cc/14BqW2Q7)
 
 ---
@@ -157,3 +159,4 @@ To explore or deploy this project, you will need:
 
 ## Deployment Walkthrough
 
+(main.tf)
