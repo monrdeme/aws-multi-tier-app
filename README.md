@@ -12,7 +12,7 @@ This repository contains the infrastructure and application code for a robust, m
 * [Project Directory Structure](#project-directory-structure)
 * [Prerequisites](#prerequisites)
 * [Deployment Walkthrough](#deployment-walkthrough)
-  * [Part 1: Initial AWS Account Setup & Terraform Backend](#part-1-initial-aws-account-setup--terraform-backend)
+  * [Part 1: Terraform Backend Configuration](#part-1-terraform-backend-configuration)
   * [Part 2: Core VPC Infrastructure](#part-2-core-vpc-infrastructure)
   * [Part 3: AWS RDS Database Deployment](#part-3-aws-rds-database-deployment)
   * [Part 4: ECS Cluster & Application Services (Frontend & Backend)](#part-4-ecs-cluster--application-services-frontend--backend)
@@ -159,4 +159,6 @@ To explore or deploy this project, you will need:
 
 ## Deployment Walkthrough
 
-(main.tf)
+
+
+[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/root/main.tf)
