@@ -12,13 +12,14 @@ This repository contains the infrastructure and application code for a robust, m
 * [Project Directory Structure](#project-directory-structure)
 * [Prerequisites](#prerequisites)
 * [Deployment Walkthrough](#deployment-walkthrough)
-  * [Part 1: Terraform Backend Configuration](#part-1-terraform-backend-configuration)
-  * [Part 2: Core VPC Infrastructure](#part-2-core-vpc-infrastructure)
-  * [Part 3: AWS RDS Database Deployment](#part-3-aws-rds-database-deployment)
-  * [Part 4: ECS Cluster & Application Services (Frontend & Backend)](#part-4-ecs-cluster--application-services-frontend--backend)
-  * [Part 5: AWS Security Services Integration (GuardDuty, Security Hub, CloudTrail)](#part-5-aws-security-services-integration-guardduty-security-hub-cloudtrail)
-  * [Part 6: Auto-Remediation with AWS Lambda](#part-6-auto-remediation-with-aws-lambda)
-  * [Part 7: DevSecOps Pipeline (GitHub Actions CI/CD)](#part-7-devsecops-pipeline-github-actions-cicd)
+  * [Part 1: Initial AWS Account Setup](#part-1-initial-aws-account-setup)
+  * [Part 2: Root Module (Terraform Configuration)](#part-2-root-module-terraform-configuration)
+  * [Part 3: Core VPC Infrastructure](#part-3-core-vpc-infrastructure)
+  * [Part 4: AWS RDS Database Deployment](#part-4-aws-rds-database-deployment)
+  * [Part 5: ECS Cluster & Application Services (Frontend & Backend)](#part-5-ecs-cluster--application-services-frontend--backend)
+  * [Part 6: AWS Security Services Integration (GuardDuty, Security Hub, CloudTrail)](#part-6-aws-security-services-integration-guardduty-security-hub-cloudtrail)
+  * [Part 7: Auto-Remediation with AWS Lambda](#part-7-auto-remediation-with-aws-lambda)
+  * [Part 8: DevSecOps Pipeline (GitHub Actions CI/CD)](#part-8-devsecops-pipeline-github-actions-cicd)
 * [Testing & Verification](#testing--verification)
   * [Verifying Frontend Access](#verifying-frontend-access)
   * [Testing Backend DB Connection via SSM Session Manager](#testing-backend-db-connection-via-ssm-session-manager)
@@ -159,6 +160,37 @@ To explore or deploy this project, you will need:
 
 ## Deployment Walkthrough
 
+### Part 1: Initial AWS Account Setup
+
+**Purpose**: Before provisioning infrastructure with Terraform, it’s essential to establish a reliable and centralized mechanism for managing state. This ensures that infrastructure deployments are consistent, auditable, and safe from race conditions or conflicting changes across teams and environments.
+
+**1. Create an S3 Bucket for Terraform State**:
+- Manually create a unique S3 bucket in your AWS account.
+- Enable Versioning on this bucket to keep a history of your Terraform state.
+- (Optional but Recommended) Enable Server-Side Encryption (SSE-S3) for state file at rest.
+- (Optional) Implement Bucket Policies to restrict access.
+
+**2. Create a DynamoDB Table for Terraform State Locking**:
+- Manually create a DynamoDB table with a primary key LockID (String type).
+- This table is used by Terraform to acquire a lock on the state file during terraform apply operations, preventing multiple users or processes from concurrently modifying the state, which can lead to corruption.
+
+---
+
+### Part 2: Root Module (Terraform Configuration)
+
+**Purpose**: The root module serves as the entry point for the Terraform configuration and defines the overall infrastructure layout. This is where key resources are declared, modules are called, and environment-specific variables are initialized. By configuring the root module, we establish the foundational components needed to provision and manage the infrastructure using Terraform.
+
+- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/root/main.tf)**: The primary configuration file for the entire deployment. This is where you instantiate and configure the child modules, define any top-level resources, and set up the Terraform backend for state management.
+
+- **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/root/variables.tf)**: Declares all input variables for the root module, allowing for flexible and parameterized deployments across environments.
+
+- **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/root/outputs.tf)**: Defines output values that represent important information about your deployed infrastructure, such as public load balancer DNS names or database endpoints, which can be used by other systems or for verification.
+
+- **[versions.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/root/versions.tf)**: Specifies the required Terraform CLI version and the required versions for all AWS provider plugins used in the project. This ensures consistent behavior across different deployment environments and team members.
 
 
-[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/root/main.tf)
+
+
+
+
+
