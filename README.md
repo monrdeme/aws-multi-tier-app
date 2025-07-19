@@ -14,7 +14,7 @@ This repository contains the infrastructure and application code for a robust, m
 * [Deployment Walkthrough](#deployment-walkthrough)
   * [Part 1: Initial AWS Account Setup](#part-1-initial-aws-account-setup)
   * [Part 2: Root Module (Terraform Configuration)](#part-2-root-module-terraform-configuration)
-  * [Part 3: Core VPC Infrastructure](#part-3-core-vpc-infrastructure)
+  * [Part 3: VPC Infrastructure](#part-3-vpc-infrastructure)
   * [Part 4: AWS RDS Database Deployment](#part-4-aws-rds-database-deployment)
   * [Part 5: ECS Cluster & Application Services (Frontend & Backend)](#part-5-ecs-cluster--application-services-frontend--backend)
   * [Part 6: AWS Security Services Integration (GuardDuty, Security Hub, CloudTrail)](#part-6-aws-security-services-integration-guardduty-security-hub-cloudtrail)
@@ -188,9 +188,14 @@ To explore or deploy this project, you will need:
 
 - **[versions.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/root/versions.tf)**: Specifies the required Terraform CLI version and the required versions for all AWS provider plugins used in the project. This ensures consistent behavior across different deployment environments and team members.
 
+---
 
+### Part 3: VPC Infrastructure
 
+**Purpose**: To establish the secure and isolated network environment, providing a foundation for all subsequent application and service deployments.
 
+- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/vpc/main.tf)**: Defines the core VPC, public and private subnets, NAT Gateways, Internet Gateway, route tables, and security groups that establish the network topology.
 
+- **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/vpc/variables.tf)**: Declares input variables specific to the VPC configuration, such as CIDR blocks, availability zones, and naming conventions.
 
-
+- **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/vpc/outputs.tf)**: Exposes VPC-related outputs like VPC ID, subnet IDs, and security group IDs, which are consumed by other modules.
