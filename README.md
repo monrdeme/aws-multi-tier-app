@@ -16,8 +16,10 @@ This repository contains the infrastructure and application code for a robust, m
   * [Part 2: Root Module (Terraform Configuration)](#part-2-root-module-terraform-configuration)
   * [Part 3: VPC Infrastructure](#part-3-vpc-infrastructure)
   * [Part 4: AWS RDS Database Deployment](#part-4-aws-rds-database-deployment)
-  * [Part 5: ECS Cluster & Application Services (Frontend & Backend)](#part-5-ecs-cluster--application-services-frontend--backend)
-  * [Part 6: AWS Security Services Integration (GuardDuty, Security Hub, CloudTrail)](#part-6-aws-security-services-integration-guardduty-security-hub-cloudtrail)
+  * [Part 5: AWS Secrets Manager Deployment](#part-5-aws-secrets-manager-deployment)
+  * [Part 6: ECS Frontend Application Deployment](#part-6-ecs-frontend-application-deployment)
+  * [Part 7: ECS Backend Application Deployment](#part-7-ecs-backend-application-deployment)
+  * [Part 8: Security Logging & Monitoring](#part-8-security-logging--monitoring)
   * [Part 7: Auto-Remediation with AWS Lambda](#part-7-auto-remediation-with-aws-lambda)
   * [Part 8: DevSecOps Pipeline (GitHub Actions CI/CD)](#part-8-devsecops-pipeline-github-actions-cicd)
 * [Testing & Verification](#testing--verification)
@@ -160,6 +162,8 @@ To explore or deploy this project, you will need:
 
 ## Deployment Walkthrough
 
+This section provides a step-by-step guide to deploying the entire AWS multi-tier application infrastructure and services using Terraform and automating the application deployment with GitHub Actions. Each part represents a logical grouping of infrastructure components.
+
 ### Part 1: Initial AWS Account Setup
 
 **Purpose**: Before provisioning infrastructure with Terraform, it’s essential to establish a reliable and centralized mechanism for managing state. This ensures that infrastructure deployments are consistent, auditable, and safe from race conditions or conflicting changes across teams and environments.
@@ -204,7 +208,7 @@ To explore or deploy this project, you will need:
 
 ### Part 4: AWS RDS Database Deployment
 
-**Purpose**: To provision a managed PostgreSQL database instance in private database subnets, ensuring secure and scalable storage for application data, with credentials securely managed in AWS Secrets Manager.
+**Purpose**: To provision a managed PostgreSQL database instance in private database subnets, ensuring secure and scalable storage for application data.
 
 - **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/rds/main.tf)**: Defines the database instance, database subnet group, and the necessary security group rules to control access to the database.
 
@@ -212,17 +216,51 @@ To explore or deploy this project, you will need:
 
 -  **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/rds/outputs.tf)**: Exports the ARN of the created secret, allowing other modules (like ECS) to grant access to it.
 
+---
 
+### Part 5: AWS Secrets Manager Deployment
 
+**Purpose**: To securely manage sensitive application credentials, such as database passwords, by integrating with AWS Secrets Manager, ensuring that secrets are not hardcoded and can be rotated automatically.
 
+- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/secrets-manager/main.tf)**: Defines the AWS Secrets Manager secret resource, which stores sensitive information like database credentials securely. It also sets up policies to allow specific IAM roles (e.g., ECS task roles) to retrieve these secrets.
 
+- **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/secrets-manager/variables.tf)**: Declares variables for the secret's name, description, and any initial secret string.
 
+- **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/secrets-manager/outputs.tf)**: Exports the ARN of the created secret, allowing other modules (like ECS services) to reference and grant access to it.
 
+---
 
+### Part 6: ECS Frontend Application Deployment
 
+**Purpose**: To provision the public-facing Amazon ECS service for the frontend application, including its Application Load Balancer, underlying compute capacity via EC2 instances (Auto Scaling Group), and the ECS task definition. This makes the user interface accessible to the internet.
 
+- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-frontend/main.tf)**: Defines the ECS cluster, public Application Load Balancer (ALB), target group, ECS service, and ECS task definition for the frontend application. It also configures listener rules and health checks.
 
+- **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-frontend/variables.tf)**: Declares input variables such as Docker image tag, desired task count, port mappings, and ALB settings.
 
+- **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-frontend/outputs.tf)**: Exposes frontend-related outputs like the Public ALB DNS name and the ECS cluster ARN, necessary for accessing the application.
+
+- **[user_data.sh](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-frontend/user_data.sh)**: A shell script executed when ECS EC2 instances launch, used for installing Docker, configuring the ECS agent, and performing other necessary instance setup for the frontend.
+
+- **[task-definition.json](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-frontend/task-definition.json)**: A template or direct definition for the ECS task definition, specifying container images, CPU, memory, environment variables, and logging configurations for the frontend.
+
+---
+
+### Part 7: ECS Backend Application Deployment
+
+**Purpose**: To provision the internal-facing Amazon ECS service for the backend application, including its internal Application Load Balancer, underlying compute capacity via EC2 instances (Auto Scaling Group), and the ECS task definition. This service handles business logic and database interactions.
+
+- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-backend/main.tf)**: Defines the internal Application Load Balancer (ALB), target group, ECS service, and ECS task definition for the backend application. It also includes necessary security group rules for database access.
+
+- **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-backend/variables.tf)**: Declares input variables such as Docker image tag, desired task count, and references to database connection details (Sourced from Secrets Manager).
+
+- **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-backend/outputs.tf)**: Exposes backend-related outputs like the Internal ALB DNS name and the ECS cluster ARN.
+
+- **[user_data.sh](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-backend/user_data.sh)**: A shell script executed when ECS EC2 instances launch, similar to the frontend's, but for backend-specific setup and configuration.
+
+- **[task-definition.json](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-backend/task-definition.json)**: A template or direct definition for the ECS task definition, specifying backend container images, CPU, memory, environment variables (Including those passed from Secrets Manager), and logging.
+
+### Part 8: Security Logging & Monitoring
 
 
 
