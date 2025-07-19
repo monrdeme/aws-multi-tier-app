@@ -199,3 +199,41 @@ To explore or deploy this project, you will need:
 - **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/vpc/variables.tf)**: Declares input variables specific to the VPC configuration, such as CIDR blocks, availability zones, and naming conventions.
 
 - **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/vpc/outputs.tf)**: Exposes VPC-related outputs like VPC ID, subnet IDs, and security group IDs, which are consumed by other modules.
+
+---
+
+### Part 4: AWS RDS Database Deployment
+
+**Purpose**: To provision a managed PostgreSQL database instance in private database subnets, ensuring secure and scalable storage for application data, with credentials securely managed in AWS Secrets Manager.
+
+- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/rds/main.tf)**: Defines the database instance, database subnet group, and the necessary security group rules to control access to the database.
+
+- **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/rds/variables.tf)**: Declares input variables for the RDS instance, such as instance type, allocated storage, database name, and master username.
+
+-  **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/rds/outputs.tf)**: Exports the ARN of the created secret, allowing other modules (like ECS) to grant access to it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
