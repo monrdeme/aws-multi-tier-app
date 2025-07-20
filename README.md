@@ -19,9 +19,10 @@ This repository contains the infrastructure and application code for a robust, m
   * [Part 5: AWS Secrets Manager Deployment](#part-5-aws-secrets-manager-deployment)
   * [Part 6: ECS Frontend Application Deployment](#part-6-ecs-frontend-application-deployment)
   * [Part 7: ECS Backend Application Deployment](#part-7-ecs-backend-application-deployment)
-  * [Part 8: Security Logging & Monitoring](#part-8-security-logging--monitoring)
-  * [Part 7: Auto-Remediation with AWS Lambda](#part-7-auto-remediation-with-aws-lambda)
-  * [Part 8: DevSecOps Pipeline (GitHub Actions CI/CD)](#part-8-devsecops-pipeline-github-actions-cicd)
+  * [Part 8: AWS CloudWatch Logs Deployment](#part-8-aws-cloudwatch-logs-deployment)
+  * [Part 9: Security Monitoring](#part-9-security-monitoring)
+  * [Part 10: Auto-Remediation with AWS Lambda](#part-10-auto-remediation-with-aws-lambda)
+  * [Part 11: DevSecOps Pipeline (GitHub Actions CI/CD)](#part-11-devsecops-pipeline-github-actions-cicd)
 * [Testing & Verification](#testing--verification)
   * [Verifying Frontend Access](#verifying-frontend-access)
   * [Testing Backend DB Connection via SSM Session Manager](#testing-backend-db-connection-via-ssm-session-manager)
@@ -260,7 +261,47 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 - **[task-definition.json](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-backend/task-definition.json)**: A template or direct definition for the ECS task definition, specifying backend container images, CPU, memory, environment variables (Including those passed from Secrets Manager), and logging.
 
-### Part 8: Security Logging & Monitoring
+---
+
+### Part 8: AWS CloudWatch Logs Deployment
+
+**Purpose**: To establish centralized logging for the application and infrastructure components by setting up CloudWatch Log Groups. This enables aggregation, monitoring, and analysis of logs from various AWS services (like ECS, Lambda, etc.) for operational insights and troubleshooting.
+
+- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/cloudwatch-logs/main.tf)**: Defines CloudWatch log group resources for various application logs (e.g., ECS task logs, ALB access logs). It specifies retention periods and potentially encryption settings for these log groups.
+
+- **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/cloudwatch-logs/variables.tf)**: Declares input variables such as log group names, retention in days, and tags.
+
+- **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/cloudwatch-logs/outputs.tf)**: Exposes the ARNs and names of the created log groups, allowing other services to send logs to them.
+
+---
+
+### Part 9: Security Monitoring
+
+**Purpose**: To activate and configure AWS security services across the account, providing continuous threat detection, centralized security posture management, and comprehensive auditing of API activity to enhance overall security posture.
+
+- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/security-monitoring/main.tf)**: Defines the AWS GuardDuty detector, Security Hub account, and CloudTrail resources to enable these services.
+
+- **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/security-monitoring/variables.tf)**: Declares input variables, such as whether to enable specific services or configure custom settings.
+
+- **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/security-monitoring/outputs.tf)**: Exposes ARNs of the deployed security services for reference or integration with other systems.
+
+---
+
+### Part 10: Auto-Remediation with AWS Lambda
+
+**Purpose**: To deploy an AWS Lambda function designed to automatically respond to specific security findings (e.g., from AWS Security Hub or GuardDuty) by taking predefined remediation actions, thus enhancing security posture through automated incident response.
+
+- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/auto-remediation/main.tf)**: Defines the Lambda function, its associated IAM role with necessary permissions, and EventBridge rule resources to trigger the Lambda function based on certain security findings.
+
+- **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/auto-remediation/variables.tf)**: Declares input variables for the Lambda function, such as its name, handler, and runtime.
+
+- **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/auto-remediation/outputs.tf)**: Exports the ARN of the deployed Lambda function.
+
+- **[lambda_function_code/main.py](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/auto-remediation/lambda_function_code/main.py)**: Contains the Python source code for the auto-remediation Lambda function, which defines the logic for responding to security events.
+
+
+
+
 
 
 
