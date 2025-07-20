@@ -299,6 +299,75 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 - **[lambda_function_code/main.py](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/auto-remediation/lambda_function_code/main.py)**: Contains the Python source code for the auto-remediation Lambda function, which defines the logic for responding to security events.
 
+---
+
+### Part 11: DevSecOps Pipeline (GitHub Actions CI/CD)
+
+**Purpose**: To configure the automated continuous integration and continuous deployment (CI/CD) pipeline using GitHub Actions. This pipeline ensures that application code changes are automatically built, scanned for security vulnerabilities, pushed to ECR, and deployed to ECS, enforcing DevSecOps practices throughout the development lifecycle.
+
+**1. AWS IAM Role Setup for GitHub Actions (OIDC)**:
+- Create an IAM OIDC Identity Provider:
+   * Go to **IAM** > **Identity Providers** > **Add provider**.
+   * **Provider type:** `OpenID Connect`
+   * **Provider URL:** `https://token.actions.githubusercontent.com`
+   * **Audience:** `sts.amazonaws.com`
+   * Click `Add provider`.
+
+- Create an IAM Role for GitHub Actions:
+  * Go to **IAM** > **Roles** > **Create role**.
+  * **Trusted entity type:** `Web identity`.
+  * **Identity provider:** Select `token.actions.githubusercontent.com`.
+  * **Audience:** Select `sts.amazonaws.com`.
+  * **Condition (Highly Recommended for Security):** Add a condition to restrict which repositories or branches can assume this role. For example:
+        * `StringLike`: `token.actions.githubusercontent.com:sub` : `repo:<YOUR_GITHUB_ORG_OR_USERNAME>/<YOUR_REPO_NAME>:*` (e.g., `repo:myorg/aws-devsecops-app:*` or `repo:myusername/aws-devsecops-app:main`). This ensures only your specific repository (or branch) can assume the role.
+  * **Permissions:** Attach the necessary permissions policies. For initial setup and ease, you might use `AdministratorAccess` (for `terraform apply`). **However, for production, restrict this to the absolute minimum necessary permissions (e.g., `AmazonECS_FullAccess`, `AmazonRDSFullAccess`, `AmazonS3FullAccess` for specific buckets, etc.).**
+  * **Role name:** Give it a descriptive name like `github-actions-oidc-deploy-role`.
+  * Create the role and note down its **ARN**.
+
+
+**2. Configure GitHub Repository Secrets**:
+- Manually create a DynamoDB table with a primary key LockID (String type).
+- This table is used by Terraform to acquire a lock on the state file during terraform apply operations, preventing multiple users or processes from concurrently modifying the state, which can lead to corruption.
+
+
+
+
+### AWS IAM Role Setup for GitHub Actions (OIDC)
+
+For secure, credential-less deployments from GitHub Actions, we utilize OpenID Connect (OIDC). This allows GitHub Actions workflows to assume an IAM role in your AWS account using short-lived credentials, eliminating the need to store long-lived AWS access keys as GitHub secrets.
+
+1.  **Create an IAM OIDC Identity Provider:**
+    * Go to **IAM** > **Identity Providers** > **Add provider**.
+    * **Provider type:** `OpenID Connect`
+    * **Provider URL:** `https://token.actions.githubusercontent.com`
+    * **Audience:** `sts.amazonaws.com`
+    * Click `Add provider`.
+2.  **Create an IAM Role for GitHub Actions:**
+    * Go to **IAM** > **Roles** > **Create role**.
+    * **Trusted entity type:** `Web identity`.
+    * **Identity provider:** Select `token.actions.githubusercontent.com`.
+    * **Audience:** Select `sts.amazonaws.com`.
+    * **Condition (Highly Recommended for Security):** Add a condition to restrict which repositories or branches can assume this role. For example:
+        * `StringLike`: `token.actions.githubusercontent.com:sub` : `repo:<YOUR_GITHUB_ORG_OR_USERNAME>/<YOUR_REPO_NAME>:*` (e.g., `repo:myorg/aws-devsecops-app:*` or `repo:myusername/aws-devsecops-app:main`). This ensures only your specific repository (or branch) can assume the role.
+    * **Permissions:** Attach the necessary permissions policies. For initial setup and ease, you might use `AdministratorAccess` (for `terraform apply`). **However, for production, restrict this to the absolute minimum necessary permissions (e.g., `AmazonECS_FullAccess`, `AmazonRDSFullAccess`, `AmazonS3FullAccess` for specific buckets, etc.).**
+    * **Role name:** Give it a descriptive name like `github-actions-oidc-deploy-role`.
+    * Create the role and note down its **ARN**.
+
+### GitHub Repository Secrets Configuration
+
+You will need to configure certain secrets in your GitHub repository to allow the CI/CD pipeline to function correctly.
+
+1.  Go to your GitHub repository > **Settings** > **Secrets and variables** > **Actions** > **New repository secret**.
+2.  Add the following secrets:
+    * `AWS_REGION`: Your AWS region (e.g., `us-east-1`).
+    * `AWS_ACCOUNT_ID`: Your 12-digit AWS account ID.
+    * `OIDC_IAM_ROLE_ARN`: The ARN of the IAM role you created in the previous step (e.g., `arn:aws:iam::123456789012:role/github-actions-oidc-deploy-role`).
+
+
+
+
+
+
 
 
 
