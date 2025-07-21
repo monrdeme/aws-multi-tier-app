@@ -6,7 +6,7 @@ This repository contains the infrastructure and application code for a robust, m
 ## Table of Contents
 
 * [Overview](#overview)
-* [Architecture](#architecture)
+* [Architecture Diagram](#architecture-diagram)
 * [Key Features & Technologies](#key-features--technologies)
 * [DevSecOps Philosophy](#devsecops-philosophy)
 * [Project Directory Structure](#project-directory-structure)
@@ -307,67 +307,70 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 **1. AWS IAM Role Setup for GitHub Actions (OIDC)**:
 - Create an IAM OIDC Identity Provider:
-   * Go to **IAM** > **Identity Providers** > **Add provider**.
-   * **Provider type:** `OpenID Connect`
-   * **Provider URL:** `https://token.actions.githubusercontent.com`
-   * **Audience:** `sts.amazonaws.com`
-   * Click `Add provider`.
+   * Go to IAM > Identity Providers > Add provider
+   * **Provider type:** OpenID Connect
+   * **Provider URL:** https://token.actions.githubusercontent.com
+   * **Audience:** sts.amazonaws.com
+   * Click Add provider.
 
 - Create an IAM Role for GitHub Actions:
-  * Go to **IAM** > **Roles** > **Create role**.
-  * **Trusted entity type:** `Web identity`.
-  * **Identity provider:** Select `token.actions.githubusercontent.com`.
-  * **Audience:** Select `sts.amazonaws.com`.
-  * **Condition (Highly Recommended for Security):** Add a condition to restrict which repositories or branches can assume this role. For example:
-        * `StringLike`: `token.actions.githubusercontent.com:sub` : `repo:<YOUR_GITHUB_ORG_OR_USERNAME>/<YOUR_REPO_NAME>:*` (e.g., `repo:myorg/aws-devsecops-app:*` or `repo:myusername/aws-devsecops-app:main`). This ensures only your specific repository (or branch) can assume the role.
-  * **Permissions:** Attach the necessary permissions policies. For initial setup and ease, you might use `AdministratorAccess` (for `terraform apply`). **However, for production, restrict this to the absolute minimum necessary permissions (e.g., `AmazonECS_FullAccess`, `AmazonRDSFullAccess`, `AmazonS3FullAccess` for specific buckets, etc.).**
-  * **Role name:** Give it a descriptive name like `github-actions-oidc-deploy-role`.
-  * Create the role and note down its **ARN**.
-
+  * Go to IAM > Roles > Create role.
+  * **Trusted entity type:** Web identity.
+  * **Identity provider:** Select token.actions.githubusercontent.com.
+  * **Audience:** Select sts.amazonaws.com.
+  * **Condition (Recommended for Security):** Add a condition to restrict which repositories or branches can assume this role. For example:
+        `StringLike`: `token.actions.githubusercontent.com:sub` : `repo:<YOUR_GITHUB_ORG_OR_USERNAME>/<YOUR_REPO_NAME>:*`. This ensures only your specific repository (or branch) can assume the role.
+  * **Permissions**: Attach the necessary permissions policies. For initial setup and ease, you might use AdministratorAccess (for terraform apply). However, for production, restrict this to the minimum necessary permissions (e.g., AmazonECS_FullAccess, AmazonRDSFullAccess, AmazonS3FullAccess for specific buckets, etc.).
+  * **Role name:** Give it a name like github-actions-oidc-deploy-role.
+  * Create the role and note down its ARN.
 
 **2. Configure GitHub Repository Secrets**:
-- Manually create a DynamoDB table with a primary key LockID (String type).
-- This table is used by Terraform to acquire a lock on the state file during terraform apply operations, preventing multiple users or processes from concurrently modifying the state, which can lead to corruption.
-
-
-
-
-### AWS IAM Role Setup for GitHub Actions (OIDC)
-
-For secure, credential-less deployments from GitHub Actions, we utilize OpenID Connect (OIDC). This allows GitHub Actions workflows to assume an IAM role in your AWS account using short-lived credentials, eliminating the need to store long-lived AWS access keys as GitHub secrets.
-
-1.  **Create an IAM OIDC Identity Provider:**
-    * Go to **IAM** > **Identity Providers** > **Add provider**.
-    * **Provider type:** `OpenID Connect`
-    * **Provider URL:** `https://token.actions.githubusercontent.com`
-    * **Audience:** `sts.amazonaws.com`
-    * Click `Add provider`.
-2.  **Create an IAM Role for GitHub Actions:**
-    * Go to **IAM** > **Roles** > **Create role**.
-    * **Trusted entity type:** `Web identity`.
-    * **Identity provider:** Select `token.actions.githubusercontent.com`.
-    * **Audience:** Select `sts.amazonaws.com`.
-    * **Condition (Highly Recommended for Security):** Add a condition to restrict which repositories or branches can assume this role. For example:
-        * `StringLike`: `token.actions.githubusercontent.com:sub` : `repo:<YOUR_GITHUB_ORG_OR_USERNAME>/<YOUR_REPO_NAME>:*` (e.g., `repo:myorg/aws-devsecops-app:*` or `repo:myusername/aws-devsecops-app:main`). This ensures only your specific repository (or branch) can assume the role.
-    * **Permissions:** Attach the necessary permissions policies. For initial setup and ease, you might use `AdministratorAccess` (for `terraform apply`). **However, for production, restrict this to the absolute minimum necessary permissions (e.g., `AmazonECS_FullAccess`, `AmazonRDSFullAccess`, `AmazonS3FullAccess` for specific buckets, etc.).**
-    * **Role name:** Give it a descriptive name like `github-actions-oidc-deploy-role`.
-    * Create the role and note down its **ARN**.
-
-### GitHub Repository Secrets Configuration
 
 You will need to configure certain secrets in your GitHub repository to allow the CI/CD pipeline to function correctly.
 
-1.  Go to your GitHub repository > **Settings** > **Secrets and variables** > **Actions** > **New repository secret**.
-2.  Add the following secrets:
-    * `AWS_REGION`: Your AWS region (e.g., `us-east-1`).
-    * `AWS_ACCOUNT_ID`: Your 12-digit AWS account ID.
-    * `OIDC_IAM_ROLE_ARN`: The ARN of the IAM role you created in the previous step (e.g., `arn:aws:iam::123456789012:role/github-actions-oidc-deploy-role`).
+-  Go to your GitHub repository > Settings > Secrets and variables > Actions > New repository secret.
+-  Add the following secrets:
+    * **AWS_ACCOUNT_ID**: Your 12-digit AWS account ID.
+    * **DB_USERNAME**: The master username for your RDS instance (e.g., postgres).
+    * **DB_NAME**: The name of your database (e.g., flaskappdb).
+    * **DB_INSTANCE_TYPE**: Your RDS instance type (e.g., db.t3.micro).
+    * **DB_ALLOCATED_STORAGE**: Your RDS allocated storage in GB (e.g., 20).
+    * **VPC_CIDR**: Your VPC CIDR block (e.g., 10.0.0.0/16).
+    * **PUBLIC_SUBNET_CIDRS**: A comma-separated string of your public subnet CIDRs (e.g., 10.0.1.0/24,10.0.2.0/24).
+    * **PRIVATE_APP_SUBNET_CIDRS**: A comma-separated string of your private application subnet CIDRs (e.g., 10.0.11.0/24,10.0.12.0/24).
+    * **PRIVATE_DB_SUBNET_CIDRS**: A comma-separated string of your private data subnet CIDRs (e.g., 10.0.21.0/24,10.0.22.0/24).
+    * **FRONTEND_CONTAINER_PORT**: The port your frontend app listens on (e.g., 8000).
+    * **FRONTEND_INSTANCE_TYPE**: Frontend EC2 instance type (e.g., t3.micro).
+    * **FRONTEND_DESIRED_CAPACITY**: Desired frontend instances (e.g., 1).
+    * **FRONTEND_MAX_CAPACITY**: Max frontend instances (e.g., 1).
+    * **FRONTEND_MIN_CAPACITY**: Min frontend instances (e.g., 1).
+    * **BACKEND_CONTAINER_PORT**: The port your backend app listens on (e.g., 5000).
+    * **BACKEND_INSTANCE_TYPE**: Backend EC2 instance type (e.g., t3.micro).
+    * **BACKEND_DESIRED_CAPACITY**: Desired backend instances (e.g., 1).
+    * **BACKEND_MAX_CAPACITY**: Max backend instances (e.g., 1).
+    * **BACKEND_MIN_CAPACITY**: Min backend instances (e.g., 1).
+
+**3. Trigger the Pipeline**:
+- **[main.yml](https://github.com/monrdeme/aws-multi-tier-app/blob/main/.github/workflows/main.yml)**: Defines the entire CI/CD process, including triggers, jobs, and steps.
+- A push to the main branch of your repository will automatically trigger this workflow.
+- The pipeline will perform the following critical steps:
+    * **Terraform Apply**: Re-applies the root Terraform configuration to ensure infrastructure is up-to-date with the latest code changes.
+    * **Docker Build & Scan**: Builds Docker images for both the Frontend and Backend applications, and then scans these images using Trivy for known OS package and application dependency vulnerabilities.
+    * **Code Scan**: Performs Static Application Security Testing (SAST) on the Python application code using Bandit to identify common security issues.
+    * **IaC Scan**: Scans the Terraform code using Checkov to identify infrastructure as code misconfigurations and ensure compliance with security best practices.
+    * **Push to ECR**: Pushes the built and scanned Docker images to Amazon Elastic Container Registry (ECR).
+    * **ECS Deploy**: Updates the ECS services with the new, validated image tags, triggering a rolling update of the application.
+ 
+**4. Monitor Pipeline Execution**:
+- Monitor the progress and status of the workflow in the "Actions" tab of your GitHub repository.
+ 
 
 
 
 
 
 
+## Testing & Verification
 
 
 
