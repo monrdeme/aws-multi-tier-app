@@ -26,6 +26,7 @@ This repository contains the infrastructure and application code for a robust, m
 * [Testing & Verification](#testing--verification)
   * [Verifying Frontend Access](#verifying-frontend-access)
   * [Testing Backend DB Connection via SSM Session Manager](#testing-backend-db-connection-via-ssm-session-manager)
+  * [Testing the Auto-Remediation](#testing-the-auto-remediation)
 * [Cleanup](#cleanup)
 * [Further Enhancements](#further-enhancements)
 
@@ -364,23 +365,40 @@ You will need to configure certain secrets in your GitHub repository to allow th
 **4. Monitor Pipeline Execution**:
 - Monitor the progress and status of the workflow in the "Actions" tab of your GitHub repository.
  
-
-
-
-
-
-
 ## Testing & Verification
 
+Once the pipeline has successfully deployed, you can verify the application's functionality.
 
+### Verifying Frontend Access
+- Go to AWS Console > EC2 > Load Balancers.
+- Select the public Application Load Balancer.
+- Copy its DNS name.
+- Paste the DNS name into your web browser. You should see the frontend application.
 
+---
 
+### Testing Backend DB Connection via SSM Session Manager
 
+To verify the backend's connectivity to the database via the internal ALB, you can use SSM Session Manager.
 
+**1. Get Backend ECS Instance ID:**
+- Go to AWS Console > ECS > Clusters > <YOUR_BACKEND_CLUSTER_NAME> > Tasks.
+- Find a running backend task and click on its ID.
+- Under the "Container instances" section, click on the instance ID. This will take you to the EC2 instance details.
+- Note down the Instance ID (e.g., i-0abcdef1234567890).
 
+**2. Start an SSM Session:**
+- Go to AWS Console > Systems Manager > Session Manager.
+- Click "Start session" and select the backend EC2 instance ID you noted.
 
+**3. Curl the Internal ALB's Health Endpoint:**
+- Once connected, run the following curl command to test connectivity to your Internal ALB's DNS name on the /health endpoint: `curl -v http://<YOUR_INTERNAL_ALB_DNS_NAME>/health`
+- (Replace <YOUR_INTERNAL_ALB_DNS_NAME> with the actual DNS name of the Internal ALB found under EC2 > Load Balancers).
+- **Expected Output:** You should see HTTP/1.1 200 OK and a JSON response like {"status": "healthy" ...}.
+- You can also try `curl -v http://<YOUR_INTERNAL_ALB_DNS_NAME>/db-test` to test the database connection from the backend via the internal ALB.
 
-
+**4. Security Group Consideration for SSM curl Test:**
+- For the curl command from the EC2 instance to the internal ALB to work, the Internal ALB Security Group must allow inbound HTTP (Port 80) traffic from the security group of your ECS instances. This rule is crucial for debugging and for the frontend to communicate with the backend.
 
 
 
