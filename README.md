@@ -26,7 +26,7 @@ This repository contains the infrastructure and application code for a robust, m
 * [Testing & Verification](#testing--verification)
   * [Verifying Frontend Access](#verifying-frontend-access)
   * [Testing Backend DB Connection via SSM Session Manager](#testing-backend-db-connection-via-ssm-session-manager)
-  * [Testing the Auto-Remediation](#testing-the-auto-remediation)
+  * [Testing Auto-Remediation](#testing-auto-remediation)
 * [Cleanup](#cleanup)
 * [Further Enhancements](#further-enhancements)
 
@@ -381,24 +381,53 @@ Once the pipeline has successfully deployed, you can verify the application's fu
 
 To verify the backend's connectivity to the database via the internal ALB, you can use SSM Session Manager.
 
-**1. Get Backend ECS Instance ID:**
+**1. Get Backend ECS Instance ID**:
 - Go to AWS Console > ECS > Clusters > <YOUR_BACKEND_CLUSTER_NAME> > Tasks.
 - Find a running backend task and click on its ID.
 - Under the "Container instances" section, click on the instance ID. This will take you to the EC2 instance details.
 - Note down the Instance ID (e.g., i-0abcdef1234567890).
 
-**2. Start an SSM Session:**
+**2. Start an SSM Session**:
 - Go to AWS Console > Systems Manager > Session Manager.
 - Click "Start session" and select the backend EC2 instance ID you noted.
 
-**3. Curl the Internal ALB's Health Endpoint:**
+**3. Curl the Internal ALB's Health Endpoint**:
 - Once connected, run the following curl command to test connectivity to your Internal ALB's DNS name on the /health endpoint: `curl -v http://<YOUR_INTERNAL_ALB_DNS_NAME>/health`
 - (Replace <YOUR_INTERNAL_ALB_DNS_NAME> with the actual DNS name of the Internal ALB found under EC2 > Load Balancers).
 - **Expected Output:** You should see HTTP/1.1 200 OK and a JSON response like {"status": "healthy" ...}.
 - You can also try `curl -v http://<YOUR_INTERNAL_ALB_DNS_NAME>/db-test` to test the database connection from the backend via the internal ALB.
 
-**4. Security Group Consideration for SSM curl Test:**
+**4. Security Group Consideration for SSM curl Test**:
 - For the curl command from the EC2 instance to the internal ALB to work, the Internal ALB Security Group must allow inbound HTTP (Port 80) traffic from the security group of your ECS instances. This rule is crucial for debugging and for the frontend to communicate with the backend.
+
+---
+
+### Testing Auto-Remediation
+
+**1. Test SSH 0.0.0.0/0 Remediation**: 
+- Go to the EC2 console > Security Groups.
+- Select one of the security groups.
+- Go to the Inbound rules tab.
+- Click "Edit inbound rules" > "Add rule".
+- Set Type to "SSH", Source to "Anywhere-IPv4 (0.0.0.0/0)". Add a description like "Test rule for remediation".
+- Click "Save rules".
+- Navigate to the AWS Lambda console, find your lambda, go to its Monitor tab, and then Logs (via CloudWatch Logs). You should see an invocation and logs indicating that the Lambda detected and revoked the rule.
+- Refresh the Security Group inbound rules in the EC2 console. The rule you just added should be gone.
+
+**2. Test Unapproved AMI Remediation**:
+- Go to the EC2 console > Launch Instances.
+- Choose an unapproved AMI (e.g., a standard Amazon Linux 2 AMI that is NOT the ECS Optimized one, or Ubuntu/Windows).
+- Select an instance type (e.g., t3.micro).
+- Under "Advanced details", ensure the IAM instance profile is not one of the ECS ones (or just omit it for this test if it causes permission issues for launching). This test is about the AMI, not the instance profile's role.
+- Click "Launch instance".
+- Check the Lambda logs as above. You should see an invocation and logs indicating that the instance with the unapproved AMI was detected, stopped, and terminated.
+- Go to the EC2 console > Instances. Your newly launched instance should quickly transition to the "stopped" followed by "terminated" state.
+
+
+
+
+
+
 
 
 
