@@ -3,6 +3,7 @@
 import json
 import os
 import boto3
+import time
 from botocore.exceptions import ClientError
 
 ec2_client = boto3.client('ec2')
@@ -203,10 +204,38 @@ def revoke_ssh_0_0_0_0_sg_rule(event):
     except Exception as e:
         print(f"An error occurred during SSH remediation: {e}")
         return {"status": "failed", "error": str(e)}
+
+def wait_for_instance_state(instance_id, target_state, max_wait_time=300):
+    """
+    Wait for an instance to reach a specific state.
+    Returns True if target state is reached, False if timeout.
+    """
+    start_time = time.time()
+    while time.time() - start_time < max_wait_time:
+        try:
+            response = ec2_client.describe_instances(InstanceIds=[instance_id])
+            if response['Reservations']:
+                current_state = response['Reservations'][0]['Instances'][0]['State']['Name']
+                print(f"Instance {instance_id} current state: {current_state}")
+                
+                if current_state == target_state:
+                    return True
+                elif current_state in ['terminated', 'terminating']:
+                    print(f"Instance {instance_id} is already terminated/terminating")
+                    return False
+                    
+            time.sleep(10)  # Wait 10 seconds before checking again
+            
+        except ClientError as e:
+            print(f"Error checking instance {instance_id} state: {e}")
+            return False
+            
+    return False
     
-def stop_unapproved_ami_instance(event):
+def stop_and_terminate_unapproved_ami_instance(event):
     """
     Remediates EC2 instances launched with an unapproved AMI.
+    First stops the instance, then terminates it.
     Triggered by CloudTrail event 'RunInstances'.
     """
     print(f"Received event for unapproved AMI remediation: {json.dumps(event, indent=2)}")
@@ -222,7 +251,7 @@ def stop_unapproved_ami_instance(event):
         request_parameters = detail['requestParameters']
         response_elements = detail['responseElements']
 
-        # FIXED: Extract AMI ID from the correct location
+        # Extract AMI ID from the correct location
         ami_id = None
         
         # First, try direct lookup (for other API calls)
@@ -285,16 +314,39 @@ def stop_unapproved_ami_instance(event):
                 if current_state == 'running':
                     print(f"Stopping instance {instance_id}...")
                     ec2_client.stop_instances(InstanceIds=[instance_id])
-                    remediated_instances.append(f"Stopped instance {instance_id} (AMI: {ami_id})")
-                    print(f"Successfully stopped instance {instance_id}.")
+                    
+                    # Wait for instance to be stopped
+                    print(f"Waiting for instance {instance_id} to stop...")
+                    if wait_for_instance_state(instance_id, 'stopped', max_wait_time=300):
+                        print(f"Instance {instance_id} stopped successfully. Now terminating...")
+                        ec2_client.terminate_instances(InstanceIds=[instance_id])
+                        remediated_instances.append(f"Stopped and terminated instance {instance_id} (AMI: {ami_id})")
+                        print(f"Successfully terminated instance {instance_id} after stopping.")
+                    else:
+                        print(f"Instance {instance_id} did not stop within timeout. Forcing termination...")
+                        ec2_client.terminate_instances(InstanceIds=[instance_id])
+                        remediated_instances.append(f"Force terminated instance {instance_id} (AMI: {ami_id}) - stop timeout")
+                        
                 elif current_state == 'pending':
-                    print(f"Instance {instance_id} is still starting up. Terminating instead...")
+                    print(f"Instance {instance_id} is still starting up. Terminating directly...")
                     ec2_client.terminate_instances(InstanceIds=[instance_id])
                     remediated_instances.append(f"Terminated instance {instance_id} (AMI: {ami_id}) - was in pending state")
                     print(f"Successfully terminated instance {instance_id}.")
+                    
+                elif current_state == 'stopped':
+                    print(f"Instance {instance_id} is already stopped. Terminating...")
+                    ec2_client.terminate_instances(InstanceIds=[instance_id])
+                    remediated_instances.append(f"Terminated already stopped instance {instance_id} (AMI: {ami_id})")
+                    print(f"Successfully terminated instance {instance_id}.")
+                    
+                elif current_state in ['terminated', 'terminating']:
+                    print(f"Instance {instance_id} is already terminated/terminating. No action needed.")
+                    remediated_instances.append(f"Instance {instance_id} already terminated/terminating (AMI: {ami_id})")
+                    
                 else:
-                    print(f"Instance {instance_id} is in state '{current_state}'. No action needed.")
-                    remediated_instances.append(f"Instance {instance_id} already in state '{current_state}' (AMI: {ami_id})")
+                    print(f"Instance {instance_id} is in unexpected state '{current_state}'. Attempting termination...")
+                    ec2_client.terminate_instances(InstanceIds=[instance_id])
+                    remediated_instances.append(f"Terminated instance {instance_id} from state '{current_state}' (AMI: {ami_id})")
 
             except ClientError as e:
                 error_msg = f"Error processing instance {instance_id}: {e}"
@@ -312,6 +364,10 @@ def stop_unapproved_ami_instance(event):
         error_msg = f"Missing required key in event structure: {e}"
         print(error_msg)
         return {"status": "failed", "error": error_msg}
+    except Exception as e:
+        error_msg = f"An error occurred during unapproved AMI remediation: {e}"
+        print(error_msg)
+        return {"status": "failed", "error": error_msg}
 
 def lambda_handler(event, context):
     """
@@ -327,7 +383,7 @@ def lambda_handler(event, context):
         if event_name == 'AuthorizeSecurityGroupIngress':
             return revoke_ssh_0_0_0_0_sg_rule(event)
         elif event_name == 'RunInstances':
-            return stop_unapproved_ami_instance(event)
+            return stop_and_terminate_unapproved_ami_instance(event)
         else:
             print(f"Unhandled event type: {event_name}")
             return {"status": "ignored", "message": f"Event type {event_name} not handled"}
@@ -335,7 +391,3 @@ def lambda_handler(event, context):
     except Exception as e:
         print(f"Error in lambda_handler: {e}")
         return {"status": "error", "message": str(e)}
-    except Exception as e:
-        error_msg = f"An error occurred during unapproved AMI remediation: {e}"
-        print(error_msg)
-        return {"status": "failed", "error": error_msg}
