@@ -177,9 +177,13 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 - (Optional but Recommended) Enable Server-Side Encryption (SSE-S3) for state file at rest.
 - (Optional) Implement Bucket Policies to restrict access.
 
+![Terraform state bucket](https://i.postimg.cc/L4LKkdKK/tf-state-bucket-3.png)
+
 **2. Create a DynamoDB Table for Terraform State Locking**:
 - Manually create a DynamoDB table with a primary key LockID (String type).
 - This table is used by Terraform to acquire a lock on the state file during terraform apply operations, preventing multiple users or processes from concurrently modifying the state, which can lead to corruption.
+
+![DynamoDB table](https://i.postimg.cc/x1tWjHht/Dynamo-DB-Table.png)
 
 ---
 
