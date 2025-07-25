@@ -435,6 +435,8 @@ You will need to configure certain secrets in your GitHub repository to allow th
     * **BACKEND_MAX_CAPACITY**: Max backend instances (e.g., 1).
     * **BACKEND_MIN_CAPACITY**: Min backend instances (e.g., 1).
 
+<img src="https://i.postimg.cc/Lsns9BsK/github-repo-secrets.png" width="1100"/>
+
 **3. Trigger the Pipeline**:
 - **[main.yml](https://github.com/monrdeme/aws-multi-tier-app/blob/main/.github/workflows/main.yml)**: Defines the entire CI/CD process, including triggers, jobs, and steps.
 - A push to the main branch of your repository will automatically trigger this workflow.
