@@ -15,14 +15,13 @@ This repository contains the infrastructure and application code for a robust, m
   * [Part 1: Initial AWS Account Setup](#part-1-initial-aws-account-setup)
   * [Part 2: Root Module (Terraform Configuration)](#part-2-root-module-terraform-configuration)
   * [Part 3: VPC Infrastructure](#part-3-vpc-infrastructure)
-  * [Part 4: AWS RDS Database Deployment](#part-4-aws-rds-database-deployment)
-  * [Part 5: AWS Secrets Manager Deployment](#part-5-aws-secrets-manager-deployment)
-  * [Part 6: ECS Frontend Application Deployment](#part-6-ecs-frontend-application-deployment)
-  * [Part 7: ECS Backend Application Deployment](#part-7-ecs-backend-application-deployment)
-  * [Part 8: AWS CloudWatch Logs Deployment](#part-8-aws-cloudwatch-logs-deployment)
-  * [Part 9: Security Monitoring](#part-9-security-monitoring)
-  * [Part 10: Auto-Remediation with AWS Lambda](#part-10-auto-remediation-with-aws-lambda)
-  * [Part 11: DevSecOps Pipeline (GitHub Actions CI/CD)](#part-11-devsecops-pipeline-github-actions-cicd)
+  * [Part 4: RDS Database](#part-4-aws-rds-database)
+  * [Part 5: Secrets Manager](#part-5-secrets-manager)
+  * [Part 6: ECS Cluster & Application Services (Frontend & Backend)](#part-6-ecs-cluster--application-services-frontend--backend)
+  * [Part 7: CloudWatch Logs](#part-7-cloudwatch-logs)
+  * [Part 8: Security Monitoring](#part-8-security-monitoring)
+  * [Part 9: Auto-Remediation with Lambda](#part-9-auto-remediation-with-lambda)
+  * [Part 10: DevSecOps Pipeline (GitHub Actions CI/CD)](#part-11-devsecops-pipeline-github-actions-cicd)
 * [Testing & Verification](#testing--verification)
   * [Verifying Frontend Access](#verifying-frontend-access)
   * [Testing Backend DB Connection via SSM Session Manager](#testing-backend-db-connection-via-ssm-session-manager)
@@ -177,13 +176,13 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 - (Optional but Recommended) Enable Server-Side Encryption (SSE-S3) for state file at rest.
 - (Optional) Implement Bucket Policies to restrict access.
 
-![Terraform state bucket](https://i.postimg.cc/L4LKkdKK/tf-state-bucket-3.png)
+<img src="https://i.postimg.cc/L4LKkdKK/tf-state-bucket-3.png" width="1100"/>
 
 **2. Create a DynamoDB Table for Terraform State Locking**:
 - Manually create a DynamoDB table with a primary key LockID (String type).
 - This table is used by Terraform to acquire a lock on the state file during terraform apply operations, preventing multiple users or processes from concurrently modifying the state, which can lead to corruption.
 
-![DynamoDB table](https://i.postimg.cc/x1tWjHht/Dynamo-DB-Table.png)
+<img src="https://i.postimg.cc/x1tWjHht/Dynamo-DB-Table.png" width="1100"/>
 
 ---
 
@@ -211,9 +210,37 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 - **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/vpc/outputs.tf)**: Exposes VPC-related outputs like VPC ID, subnet IDs, and security group IDs, which are consumed by other modules.
 
+**VPC**
+
+<img src="https://i.postimg.cc/qv43m0Yg/VPC.png" width="1100"/>
+
+**Public and Private Subnets**
+
+<img src="https://i.postimg.cc/Wp7jGvM5/subnets.png" width="1100"/>
+
+**Nat Gateways**
+
+<img src="https://i.postimg.cc/kX66Ms6N/nat-gateway.png" width="1100"/>
+
+**Elastic IP Addresses for Nat Gateways**
+
+<img src="https://i.postimg.cc/k5Fw1q75/eip.png" width="1100"/>
+
+**Internet Gateway**
+
+<img src="https://i.postimg.cc/vZyVP9TW/internet-gateway.png" width="1100"/>
+
+**Route Tables**
+
+<img src="https://i.postimg.cc/QNWKhSW-Q/rt.png" width="1100"/>
+
+**Security Groups**
+
+<img src="https://i.postimg.cc/Qxf3PZx0/sg.png" width="1100"/>
+
 ---
 
-### Part 4: AWS RDS Database Deployment
+### Part 4: RDS Database
 
 **Purpose**: To provision a managed PostgreSQL database instance in private database subnets, ensuring secure and scalable storage for application data.
 
@@ -223,9 +250,11 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 -  **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/rds/outputs.tf)**: Exports the ARN of the created secret, allowing other modules (like ECS) to grant access to it.
 
+<img src="https://i.postimg.cc/CLkvBj9D/db.png" width="1100"/>
+
 ---
 
-### Part 5: AWS Secrets Manager Deployment
+### Part 5: Secrets Manager
 
 **Purpose**: To securely manage sensitive application credentials, such as database passwords, by integrating with AWS Secrets Manager, ensuring that secrets are not hardcoded and can be rotated automatically.
 
@@ -235,13 +264,17 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 - **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/secrets-manager/outputs.tf)**: Exports the ARN of the created secret, allowing other modules (like ECS services) to reference and grant access to it.
 
+<img src="https://i.postimg.cc/NF11MxLj/secrets-manager.png" width="1100"/>
+
 ---
 
-### Part 6: ECS Frontend Application Deployment
+### Part 6: ECS Cluster & Application Services (Frontend & Backend)
 
-**Purpose**: To provision the public-facing Amazon ECS service for the frontend application, including its Application Load Balancer, underlying compute capacity via EC2 instances (Auto Scaling Group), and the ECS task definition. This makes the user interface accessible to the internet.
+**Purpose**: To provision the Amazon ECS cluster, its underlying EC2 instances (via Auto Scaling Groups and Launch Templates), and deploy the Frontend (public-facing) and Backend (internal-facing) Flask applications using Application Load Balancers for traffic routing and health checks.
 
-- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-frontend/main.tf)**: Defines the ECS cluster, public Application Load Balancer (ALB), target group, ECS service, and ECS task definition for the frontend application. It also configures listener rules and health checks.
+**Frontend Application**:
+
+- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-frontend/main.tf)**: Defines the ECR repository, ECS cluster, public Application Load Balancer (ALB), target group, ECS service, and ECS task definition for the frontend application. It also configures listener rules and health checks.
 
 - **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-frontend/variables.tf)**: Declares input variables such as Docker image tag, desired task count, port mappings, and ALB settings.
 
@@ -251,11 +284,7 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 - **[task-definition.json](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-frontend/task-definition.json)**: A template or direct definition for the ECS task definition, specifying container images, CPU, memory, environment variables, and logging configurations for the frontend.
 
----
-
-### Part 7: ECS Backend Application Deployment
-
-**Purpose**: To provision the internal-facing Amazon ECS service for the backend application, including its internal Application Load Balancer, underlying compute capacity via EC2 instances (Auto Scaling Group), and the ECS task definition. This service handles business logic and database interactions.
+**Backend Application**:
 
 - **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-backend/main.tf)**: Defines the internal Application Load Balancer (ALB), target group, ECS service, and ECS task definition for the backend application. It also includes necessary security group rules for database access.
 
@@ -267,9 +296,41 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 - **[task-definition.json](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/ecs-backend/task-definition.json)**: A template or direct definition for the ECS task definition, specifying backend container images, CPU, memory, environment variables (Including those passed from Secrets Manager), and logging.
 
+**ECR Repositories**
+
+<img src="https://i.postimg.cc/XqysgFJR/ecr.png" width="1100"/>
+
+**ECS Clusters**
+
+<img src="https://i.postimg.cc/fLqPCDv9/ecs.png" width="1100"/>
+
+**Launch Templates**
+
+<img src="https://i.postimg.cc/T2gdws2c/lt.png" width="1100"/>
+
+**Auto Scaling Groups**
+
+<img src="https://i.postimg.cc/KvTZ1HZN/asg.png" width="1100"/>
+
+**Application Load Balancers**
+
+<img src="https://i.postimg.cc/k5Lsgsqk/alb.png" width="1100"/>
+
+**Target Groups**
+
+<img src="https://i.postimg.cc/nhpc6fmW/frontend-tg.png" width="1100"/>
+
+**Task Definitions**
+
+<img src="https://i.postimg.cc/L6jncXZ2/task-def.png" width="1100"/>
+
+**EC2 Instances**
+
+<img src="https://i.postimg.cc/D0gRGLM7/ec2.png" width="1100"/>
+
 ---
 
-### Part 8: AWS CloudWatch Logs Deployment
+### Part 7: CloudWatch Logs
 
 **Purpose**: To establish centralized logging for the application and infrastructure components by setting up CloudWatch Log Groups. This enables aggregation, monitoring, and analysis of logs from various AWS services (like ECS, Lambda, etc.) for operational insights and troubleshooting.
 
@@ -279,9 +340,11 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 - **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/cloudwatch-logs/outputs.tf)**: Exposes the ARNs and names of the created log groups, allowing other services to send logs to them.
 
+<img src="https://i.postimg.cc/c1fWZ5dG/cloudwatch.png" width="1100"/>
+
 ---
 
-### Part 9: Security Monitoring
+### Part 8: Security Monitoring
 
 **Purpose**: To activate and configure AWS security services across the account, providing continuous threat detection, centralized security posture management, and comprehensive auditing of API activity to enhance overall security posture.
 
@@ -291,9 +354,21 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 - **[outputs.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/security-monitoring/outputs.tf)**: Exposes ARNs of the deployed security services for reference or integration with other systems.
 
+**CloudTrail**
+
+<img src="https://i.postimg.cc/xdqk4SD2/cloudtrail.pngg" width="1100"/>
+
+**GuardDuty**
+
+<img src="https://i.postimg.cc/vT5xtLRx/guardduty.png" width="1100"/>
+
+**Security Hub**
+
+<img src="https://i.postimg.cc/zGKKkNrP/security-hub.png" width="1100"/>
+
 ---
 
-### Part 10: Auto-Remediation with AWS Lambda
+### Part 9: Auto-Remediation with Lambda
 
 **Purpose**: To deploy an AWS Lambda function designed to automatically respond to specific security findings (e.g., from AWS Security Hub or GuardDuty) by taking predefined remediation actions, thus enhancing security posture through automated incident response.
 
@@ -305,9 +380,11 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 - **[lambda_function_code/main.py](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/auto-remediation/lambda_function_code/main.py)**: Contains the Python source code for the auto-remediation Lambda function, which defines the logic for responding to security events.
 
+<img src="https://i.postimg.cc/9FJQ5NBF/lambda.png" width="1100"/>
+
 ---
 
-### Part 11: DevSecOps Pipeline (GitHub Actions CI/CD)
+### Part 10: DevSecOps Pipeline (GitHub Actions CI/CD)
 
 **Purpose**: To configure the automated continuous integration and continuous deployment (CI/CD) pipeline using GitHub Actions. This pipeline ensures that application code changes are automatically built, scanned for security vulnerabilities, pushed to ECR, and deployed to ECS, enforcing DevSecOps practices throughout the development lifecycle.
 
@@ -329,6 +406,8 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
   * **Permissions**: Attach the necessary permissions policies. For initial setup and ease, you might use AdministratorAccess (for terraform apply). However, for production, restrict this to the minimum necessary permissions (e.g., AmazonECS_FullAccess, AmazonRDSFullAccess, AmazonS3FullAccess for specific buckets, etc.).
   * **Role name:** Give it a name like github-actions-oidc-deploy-role.
   * Create the role and note down its ARN.
+
+<img src="https://i.postimg.cc/RVFzfCc4/github-actions-role.png" width="1100"/>
 
 **2. Configure GitHub Repository Secrets**:
 
