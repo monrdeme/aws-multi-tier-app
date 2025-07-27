@@ -475,7 +475,7 @@ Once the pipeline has successfully deployed, you can verify the application's fu
 To verify the backend's connectivity to the database via the internal ALB, you can use SSM Session Manager.
 
 **1. Get Backend ECS Instance ID**:
-- Go to AWS Console > ECS > Clusters > <YOUR_BACKEND_ECS_CLUSTER_NAME> > Tasks.
+- Go to AWS Console > ECS > Clusters > `<YOUR_BACKEND_ECS_CLUSTER_NAME>` > Tasks.
 - Find a running backend task and click on its ID.
 - Under the "Container instances" section, click on the instance ID. This will take you to the EC2 instance details.
 - Note down the Instance ID (e.g., i-0abcdef1234567890).
@@ -486,7 +486,7 @@ To verify the backend's connectivity to the database via the internal ALB, you c
 
 **3. Curl the Internal ALB's Health Endpoint**:
 - Once connected, run the following curl command to test connectivity to your Internal ALB's DNS name on the /health endpoint: `curl -v http://<YOUR_INTERNAL_ALB_DNS_NAME>/health`
-- (Replace <YOUR_INTERNAL_ALB_DNS_NAME> with the actual DNS name of the Internal ALB found under EC2 > Load Balancers).
+- (Replace `<YOUR_INTERNAL_ALB_DNS_NAME>` with the actual DNS name of the Internal ALB found under EC2 > Load Balancers).
 - **Expected Output:** You should see HTTP/1.1 200 OK and a JSON response like {"status": "healthy" ...}.
 - You can also try `curl -v http://<YOUR_INTERNAL_ALB_DNS_NAME>/db-test` to test the database connection from the backend via the internal ALB.
 
@@ -524,27 +524,27 @@ To verify the backend's connectivity to the database via the internal ALB, you c
 * **Primary Cause**: This almost always indicates that the ECS task's container is failing its **health checks** as configured in the ALB Target Group. ECS will repeatedly try to launch new tasks, but if they don't become healthy, it stops them.
 * **Solution**:
      * **Verify /health Endpoint**: Ensure the backend Flask application (in app/backend-app/app.py) has a /health route that returns HTTP 200 OK.
-     * **Check Target Group Health Check Configuration**: Go to EC2 > Target Groups > <YOUR_TARGET_GROUP_NAME> > Health checks tab.
+     * **Check Target Group Health Check Configuration**: Go to EC2 > Target Groups > `<YOUR_TARGET_GROUP_NAME>` > Health checks tab.
        * **Protocol**: HTTP
        * **Port**: traffic port (which maps to the container's exposed port 5000)
        * **Path**: /health (must match exactly)
        * **Success codes**: 200
-     * **Check Container Logs**: Access logs via CloudWatch <YOUR_BACKEND_CONTAINER_NAME> log group to see if the application is crashing or throwing errors during startup or when the /health endpoint is hit.
-     * **Security Group for Health Checks**: The <YOUR_BACKEND_INSTANCE_SG_NAME> must allow inbound HTTP (Port 5000) from the <YOUR_INTERNAL_ALB_SG_NAME>.
+     * **Check Container Logs**: Access logs via CloudWatch `<YOUR_BACKEND_CONTAINER_NAME>` log group to see if the application is crashing or throwing errors during startup or when the /health endpoint is hit.
+     * **Security Group for Health Checks**: The `<YOUR_BACKEND_INSTANCE_SG_NAME>` must allow inbound HTTP (Port 5000) from the `<YOUR_INTERNAL_ALB_SG_NAME>`.
 
-**2. curl: (28) Failed to connect to <YOUR_INTERNAL_ALB_NAME>...: Couldn't connect to server (when curling internal ALB from EC2 instance)**:
+**2. curl: (28) Failed to connect to `<YOUR_INTERNAL_ALB_NAME>`...: Couldn't connect to server (when curling internal ALB from EC2 instance)**:
 * **Primary Cause**: This indicates a network-level blockage, most commonly due to restrictive Security Group rules. The EC2 instance running curl cannot establish a TCP connection to the Internal ALB.
 * **Solution**:
-     * **Internal ALB Security Group Ingress**: Ensure <YOUR_INTERNAL_ALB_SG_NAME> has an Inbound rule allowing HTTP (Port 80) traffic from the Security Group ID of the backend ECS instances <YOUR_BACKEND_ECS_INSTANCE_SG_NAME>. This allows the ECS instances (and thus the curl command from within one) to reach the ALB.
-     * **Backend ECS Instance Security Group Egress**: Ensure <YOUR_BACKEND_ECS_INSTANCE_SG_NAME> has an Outbound rule allowing HTTP (Port 80) traffic to the <YOUR_INTERNAL_ALB_SG_NAME>.
+     * **Internal ALB Security Group Ingress**: Ensure `<YOUR_INTERNAL_ALB_SG_NAME>` has an Inbound rule allowing HTTP (Port 80) traffic from the Security Group ID of the backend ECS instances <YOUR_BACKEND_ECS_INSTANCE_SG_NAME>. This allows the ECS instances (and thus the curl command from within one) to reach the ALB.
+     * **Backend ECS Instance Security Group Egress**: Ensure `<YOUR_BACKEND_ECS_INSTANCE_SG_NAME>` has an Outbound rule allowing HTTP (Port 80) traffic to the `<YOUR_INTERNAL_ALB_SG_NAME>`.
      * **Subnet Connectivity**: Confirm the internal ALB is deployed in the correct private subnets and that those subnets have proper route table entries (e.g., to NAT Gateway if internet access is needed for image pull, or to VPC endpoints).
 
 **3. Application Crashes / Errors in Logs (e.g., Database connection issues)**:
 * **Check Environment Variables**: Verify that all necessary environment variables (like DB_HOST, DB_USER, DB_NAME, PORT) are correctly passed to the ECS Task Definition.
 * **Secrets Manager Access**: Ensure the ECS Task Execution Role has secretsmanager:GetSecretValue permissions for the specific database secret.
 * **Database Connectivity**:
-    * **Backend Instance Security Group**: Ensure <YOUR_BACKEND_ECS_INSTANCE_SG_NAME> allows TCP (Port 5432) outbound to the <YOUR_DATABASE_SG_NAME>.
-    * **RDS Security Group**: Ensure <YOUR_DATABASE_SG_NAME> allows TCP (Port 5432) inbound from the <YOUR_BACKEND_ECS_INSTANCE_SG_NAME>.
+    * **Backend Instance Security Group**: Ensure `<YOUR_BACKEND_ECS_INSTANCE_SG_NAME>` allows TCP (Port 5432) outbound to the `<YOUR_DATABASE_SG_NAME>`.
+    * **RDS Security Group**: Ensure `<YOUR_DATABASE_SG_NAME>` allows TCP (Port 5432) inbound from the `<YOUR_BACKEND_ECS_INSTANCE_SG_NAME>`.
 
 ---
 
