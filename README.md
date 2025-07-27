@@ -440,17 +440,22 @@ You will need to configure certain secrets in your GitHub repository to allow th
 **3. Trigger the Pipeline**:
 - **[main.yml](https://github.com/monrdeme/aws-multi-tier-app/blob/main/.github/workflows/main.yml)**: Defines the entire CI/CD process, including triggers, jobs, and steps.
 - A push to the main branch of your repository will automatically trigger this workflow.
+  - `git add .`
+  - `git commit -m "Trigger the Pipeline"`
+  - `git push`
 - The pipeline will perform the following critical steps:
+    * **IaC Scan**: Scans the Terraform code using Checkov to identify infrastructure as code misconfigurations and ensure compliance with security best practices.
     * **Terraform Apply**: Re-applies the root Terraform configuration to ensure infrastructure is up-to-date with the latest code changes.
     * **Docker Build & Scan**: Builds Docker images for both the Frontend and Backend applications, and then scans these images using Trivy for known OS package and application dependency vulnerabilities.
     * **Code Scan**: Performs Static Application Security Testing (SAST) on the Python application code using Bandit to identify common security issues.
-    * **IaC Scan**: Scans the Terraform code using Checkov to identify infrastructure as code misconfigurations and ensure compliance with security best practices.
     * **Push to ECR**: Pushes the built and scanned Docker images to Amazon Elastic Container Registry (ECR).
     * **ECS Deploy**: Updates the ECS services with the new, validated image tags, triggering a rolling update of the application.
  
 **4. Monitor Pipeline Execution**:
 - Monitor the progress and status of the workflow in the "Actions" tab of your GitHub repository.
  
+<img src="https://i.postimg.cc/XqjVzjbj/github-actions-workflow.png" width="1100"/>
+
 ---
 
 ## Testing & Verification
