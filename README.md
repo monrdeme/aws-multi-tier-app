@@ -569,52 +569,11 @@ To verify the backend's connectivity to the database via the internal ALB, you c
 
 ## Further Enhancements
 
+- **Application Security**: Implement AWS WAF with custom rules for the Public ALB for more targeted Layer 7 protection.
 - **Centralized Logging**: Send security logs and findings (CloudTrail, GuardDuty, Security Hub) to an immutable S3 bucket within a dedicated logging account.
+- **Organizational Guardrails**: Integrate AWS Organizations and Service Control Policies (SCPs) for preventative controls at scale.
+- **Serverless Container Hosting**: Consider moving to Fargate for the ECS clusters in a production scenario for reduced operational overhead and enhanced inherent security.
 - **Metrics & Monitoring**: Set up custom CloudWatch metrics and alarms for application-specific health and performance.
 - **Secrets Rotation**: Configure automatic rotation for database credentials in Secrets Manager.
 - **Custom Domain & HTTPS**: Set up Route 53 with a custom domain and AWS Certificate Manager (ACM) for end-to-end HTTPS.
-- **More Advanced Security Scans**: Add DAST (Dynamic Application Security Testing) and SCA (Software Composition Analysis) scans to CI/CD pipeline.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+- **More Advanced Security Scans**: Add DAST (Dynamic Application Security Testing) in a staging environment within the pipeline.
