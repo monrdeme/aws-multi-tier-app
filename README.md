@@ -562,8 +562,8 @@ To verify the backend's connectivity to the database via the internal ALB, you c
 
 ## Cleanup
 
-- To tear down all the infrastructure created by this project, run the following Terraform command from the main terraform/ or terraform/root directory: `terraform destroy`
-- **Important**: Review the plan carefully before confirming, as this will delete all resources provisioned by Terraform. Remember to manually delete the S3 bucket and DynamoDB table used for Terraform state if you no longer need them.
+- To tear down all the infrastructure created by this project, run the following Terraform command from the main terraform/ or terraform/root directory: `terraform destroy -auto-approve`
+- **Important**: Review the plan carefully before confirming, as this will delete all resources provisioned by Terraform. If `force_delete` is set to `false` in your ECS frontend and backend modules, you will need to manually delete the container images in the associated ECR repositories before the resources can be fully destroyed. Remember to manually delete the S3 bucket and DynamoDB table used for Terraform state if you no longer need them.
 
 ---
 
