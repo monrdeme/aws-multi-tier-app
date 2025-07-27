@@ -513,6 +513,8 @@ To verify the backend's connectivity to the database via the internal ALB, you c
 - Navigate to the AWS Lambda console, find your lambda, go to its Monitor tab, and then Logs (via CloudWatch Logs). You should see an invocation and logs indicating that the Lambda detected and revoked the rule.
 - Refresh the Security Group inbound rules in the EC2 console. The rule you just added should be gone.
 
+<img src="https://i.postimg.cc/6q7x4yVm/ssh-remediation-test.png" width="1100"/>
+
 **2. Test Unapproved AMI Remediation**:
 - Go to the EC2 console > Launch Instances.
 - Choose an unapproved AMI (e.g., a standard Amazon Linux 2 AMI that is NOT the ECS Optimized one, or Ubuntu/Windows).
@@ -521,6 +523,10 @@ To verify the backend's connectivity to the database via the internal ALB, you c
 - Click "Launch instance".
 - Check the Lambda logs as above. You should see an invocation and logs indicating that the instance with the unapproved AMI was detected, stopped, and terminated.
 - Go to the EC2 console > Instances. The newly launched instance should quickly transition to the "stopped" followed by "terminated" state.
+
+<img src="https://i.postimg.cc/FRwNZyK4/unapproved-ami-test.png" width="1100"/>
+
+<img src="https://i.postimg.cc/rpbBX82G/terminated-ec2-for-unapproved-ami-test.png" width="1100"/>
 
 ---
 
