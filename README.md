@@ -495,6 +495,10 @@ To verify the backend's connectivity to the database via the internal ALB, you c
 **4. Security Group Consideration for SSM curl Test**:
 - For the curl command from the EC2 instance to the internal ALB to work, the Internal ALB Security Group must allow inbound HTTP (Port 80) traffic from the security group of your ECS instances. This rule is crucial for debugging and for the frontend to communicate with the backend.
 
+<img src="https://i.postimg.cc/DyybHFvY/backend-db-connection-test-health-endpoint.png" width="1100"/>
+
+<img src="https://i.postimg.cc/6q6TkLXG/backend-db-connection-test-dbtest.png" width="1100"/>
+
 ---
 
 ### Testing Auto-Remediation
