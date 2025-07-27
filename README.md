@@ -468,6 +468,8 @@ Once the pipeline has successfully deployed, you can verify the application's fu
 - Copy its DNS name.
 - Paste the DNS name into your web browser. You should see the frontend application.
 
+<img src="https://i.postimg.cc/2y9gzmP7/verifying-fronted-access.png" width="1100"/>
+
 ---
 
 ### Testing Backend DB Connection via SSM Session Manager
