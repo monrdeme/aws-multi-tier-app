@@ -52,27 +52,27 @@ All infrastructure is defined and managed using Terraform, ensuring consistency,
 
 ## Key Features & Technologies
 
-* **Multi-Tier Architecture**: A decoupled application design featuring a public-facing Frontend and an internal Backend service, both containerized and deployed on Amazon ECS. The Frontend application is exposed via a public Application Load Balancer in public subnets, while the Backend application and the PostgreSQL RDS database are securely hosted within private subnets, accessible only internally via a private Application Load Balancer.
-* **Containerization (Docker & Amazon ECS)**: Applications are containerized and orchestrated using Amazon Elastic Container Service (ECS) with EC2 launch type.
-* **Load Balancing (AWS Application Load Balancers)**:
+* **Multi-Tier Architecture**: A decoupled application design featuring a public-facing Frontend and an internal Backend service, both containerized and deployed on ECS. The Frontend application is exposed via a public Application Load Balancer in public subnets, while the Backend application and the PostgreSQL RDS database are securely hosted within private subnets, accessible only internally via a private Application Load Balancer.
+* **Containerization (Docker & ECS)**: Applications are containerized and orchestrated using Amazon Elastic Container Service (ECS) with EC2 launch type.
+* **Load Balancing (Application Load Balancers)**:
     * **Public ALB**: For external user access to the Frontend.
     * **Internal ALB**: For secure, internal communication between the Frontend and Backend.
-* **Networking (AWS VPC)**: Secure and isolated network environment configured with public, private application, and private database subnets, along with scoped Security Groups to enforce least-privilege access.
-* **Database Management (AWS RDS PostgreSQL)**: Secure and scalable managed database service.
+* **Networking (VPC)**: Secure and isolated network environment configured with public, private application, and private database subnets, along with scoped Security Groups to enforce least-privilege access.
+* **Database Management (RDS PostgreSQL)**: Secure and scalable managed database service.
 * **Infrastructure as Code (Terraform)**: Complete AWS infrastructure provisioning and management using Terraform modules.
 * **DevSecOps Pipeline (GitHub Actions)**: Automated CI/CD pipeline leveraging GitHub Actions for:
     * **Build**: Docker image creation.
     * **Security Scanning**:
+        * **Checkov**: Infrastructure as Code (IaC) static analysis for Terraform.
         * **Trivy**: Container image vulnerability scanning.
         * **Bandit**: Static Application Security Testing (SAST) for Python code.
-        * **Checkov**: Infrastructure as Code (IaC) static analysis for Terraform.
-    * **Deployment**: Automated deployment to Amazon ECS.
+    * **Deployment**: Automated deployment to ECS.
 * **Security & Monitoring**:
-    * **AWS Secrets Manager**: Secure storage and retrieval of sensitive application credentials (e.g., database passwords).
-    * **AWS GuardDuty**: Intelligent threat detection.
-    * **AWS Security Hub**: Centralized security posture management and compliance checks.
-    * **AWS CloudTrail**: API activity logging for auditing and governance.
-    * **AWS Lambda for Auto-Remediation**: Automated response to security findings (e.g., stopping and terminating non-compliant instances).
+    * **Secrets Manager**: Secure storage and retrieval of sensitive application credentials (e.g., database passwords).
+    * **GuardDuty**: Intelligent threat detection.
+    * **Security Hub**: Centralized security posture management and compliance checks.
+    * **CloudTrail**: API activity logging for auditing and governance.
+    * **Lambda for Auto-Remediation**: Automated response to security findings (e.g., stopping and terminating non-compliant instances).
     * **SSM Session Manager**: Secure, auditable access to EC2 instances without SSH keys or bastion hosts.
 
 ---
@@ -256,9 +256,9 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 ### Part 5: Secrets Manager
 
-**Purpose**: To securely manage sensitive application credentials, such as database passwords, by integrating with AWS Secrets Manager, ensuring that secrets are not hardcoded and can be rotated automatically.
+**Purpose**: To securely manage sensitive application credentials, such as database passwords, by integrating with Secrets Manager, ensuring that secrets are not hardcoded and can be rotated automatically.
 
-- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/secrets-manager/main.tf)**: Defines the AWS Secrets Manager secret resource, which stores sensitive information like database credentials securely. It also sets up policies to allow specific IAM roles (e.g., ECS task roles) to retrieve these secrets.
+- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/secrets-manager/main.tf)**: Defines the Secrets Manager secret resource, which stores sensitive information like database credentials securely. It also sets up policies to allow specific IAM roles (e.g., ECS task roles) to retrieve these secrets.
 
 - **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/secrets-manager/variables.tf)**: Declares variables for the secret's name, description, and any initial secret string.
 
@@ -270,7 +270,7 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 ### Part 6: ECS Cluster & Application Services (Frontend & Backend)
 
-**Purpose**: To provision the Amazon ECS cluster, its underlying EC2 instances (via Auto Scaling Groups and Launch Templates), and deploy the Frontend (public-facing) and Backend (internal-facing) Flask applications using Application Load Balancers for traffic routing and health checks.
+**Purpose**: To provision the ECS cluster, its underlying EC2 instances (via Auto Scaling Groups and Launch Templates), and deploy the Frontend (public-facing) and Backend (internal-facing) Flask applications using Application Load Balancers for traffic routing and health checks.
 
 **Frontend Application**:
 
@@ -334,7 +334,7 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 **Purpose**: To establish centralized logging for the application and infrastructure components by setting up CloudWatch Log Groups. This enables aggregation, monitoring, and analysis of logs from various AWS services (like ECS, Lambda, etc.) for operational insights and troubleshooting.
 
-- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/cloudwatch-logs/main.tf)**: Defines CloudWatch log group resources for various application logs (e.g., ECS task logs, ALB access logs). It specifies retention periods and potentially encryption settings for these log groups.
+- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/cloudwatch-logs/main.tf)**: Defines CloudWatch log group resources for various application logs (e.g., ECS task logs, ALB access logs). It also specifies retention periods for these log groups.
 
 - **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/cloudwatch-logs/variables.tf)**: Declares input variables such as log group names, retention in days, and tags.
 
@@ -348,7 +348,7 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 **Purpose**: To activate and configure AWS security services across the account, providing continuous threat detection, centralized security posture management, and comprehensive auditing of API activity to enhance overall security posture.
 
-- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/security-monitoring/main.tf)**: Defines the AWS GuardDuty detector, Security Hub account, and CloudTrail resources to enable these services.
+- **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/security-monitoring/main.tf)**: Defines the GuardDuty detector, Security Hub account, and CloudTrail resources to enable these services.
 
 - **[variables.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/security-monitoring/variables.tf)**: Declares input variables, such as whether to enable specific services or configure custom settings.
 
@@ -370,7 +370,7 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 ### Part 9: Auto-Remediation with Lambda
 
-**Purpose**: To deploy an AWS Lambda function designed to automatically respond to specific security findings (e.g., from AWS Security Hub or GuardDuty) by taking predefined remediation actions, thus enhancing security posture through automated incident response.
+**Purpose**: To deploy an AWS Lambda function designed to automatically respond to specific security findings (e.g., from Security Hub or GuardDuty) by taking predefined remediation actions, thus enhancing security posture through automated incident response.
 
 - **[main.tf](https://github.com/monrdeme/aws-multi-tier-app/blob/main/terraform/modules/auto-remediation/main.tf)**: Defines the Lambda function, its associated IAM role with necessary permissions, and EventBridge rule resources to trigger the Lambda function based on certain security findings.
 
@@ -388,7 +388,7 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 
 **Purpose**: To configure the automated continuous integration and continuous deployment (CI/CD) pipeline using GitHub Actions. This pipeline ensures that application code changes are automatically built, scanned for security vulnerabilities, pushed to ECR, and deployed to ECS, enforcing DevSecOps practices throughout the development lifecycle.
 
-**1. AWS IAM Role Setup for GitHub Actions (OIDC)**:
+**1. IAM Role Setup for GitHub Actions (OIDC)**:
 - Create an IAM OIDC Identity Provider:
    * Go to IAM > Identity Providers > Add provider
    * **Provider type**: OpenID Connect
@@ -416,14 +416,14 @@ You will need to configure certain secrets in your GitHub repository to allow th
 -  Go to your GitHub repository > Settings > Secrets and variables > Actions > New repository secret.
 -  Add the following secrets:
     * **AWS_ACCOUNT_ID**: Your 12-digit AWS account ID.
-    * **DB_USERNAME**: The master username for your RDS instance (e.g., postgres).
-    * **DB_NAME**: The name of your database (e.g., flaskappdb).
+    * **DB_USERNAME**: The master username for your RDS instance.
+    * **DB_NAME**: The name of your database.
     * **DB_INSTANCE_TYPE**: Your RDS instance type (e.g., db.t3.micro).
     * **DB_ALLOCATED_STORAGE**: Your RDS allocated storage in GB (e.g., 20).
     * **VPC_CIDR**: Your VPC CIDR block (e.g., 10.0.0.0/16).
     * **PUBLIC_SUBNET_CIDRS**: A comma-separated string of your public subnet CIDRs (e.g., 10.0.1.0/24,10.0.2.0/24).
     * **PRIVATE_APP_SUBNET_CIDRS**: A comma-separated string of your private application subnet CIDRs (e.g., 10.0.11.0/24,10.0.12.0/24).
-    * **PRIVATE_DB_SUBNET_CIDRS**: A comma-separated string of your private data subnet CIDRs (e.g., 10.0.21.0/24,10.0.22.0/24).
+    * **PRIVATE_DB_SUBNET_CIDRS**: A comma-separated string of your private database subnet CIDRs (e.g., 10.0.21.0/24,10.0.22.0/24).
     * **FRONTEND_CONTAINER_PORT**: The port your frontend app listens on (e.g., 8000).
     * **FRONTEND_INSTANCE_TYPE**: Frontend EC2 instance type (e.g., t3.micro).
     * **FRONTEND_DESIRED_CAPACITY**: Desired frontend instances (e.g., 1).
@@ -445,7 +445,7 @@ You will need to configure certain secrets in your GitHub repository to allow th
   - `git push`
 - The pipeline will perform the following critical steps:
     * **IaC Scan**: Scans the Terraform code using Checkov to identify infrastructure as code misconfigurations and ensure compliance with security best practices.
-    * **Terraform Apply**: Re-applies the root Terraform configuration to ensure infrastructure is up-to-date with the latest code changes.
+    * **Terraform Apply**: Applies the root Terraform configuration to ensure infrastructure is up-to-date with the latest code changes.
     * **Docker Build & Scan**: Builds Docker images for both the Frontend and Backend applications, and then scans these images using Trivy for known OS package and application dependency vulnerabilities.
     * **Code Scan**: Performs Static Application Security Testing (SAST) on the Python application code using Bandit to identify common security issues.
     * **Push to ECR**: Pushes the built and scanned Docker images to Amazon Elastic Container Registry (ECR).
@@ -488,7 +488,7 @@ To verify the backend's connectivity to the database via the internal ALB, you c
 
 **3. Curl the Internal ALB's Health Endpoint**:
 - Once connected, run the following curl command to test connectivity to your Internal ALB's DNS name on the /health endpoint: `curl -v http://<YOUR_INTERNAL_ALB_DNS_NAME>/health`
-- (Replace `<YOUR_INTERNAL_ALB_DNS_NAME>` with the actual DNS name of the Internal ALB found under EC2 > Load Balancers).
+- Replace `<YOUR_INTERNAL_ALB_DNS_NAME>` with the actual DNS name of the Internal ALB found under EC2 > Load Balancers.
 - **Expected Output**: You should see HTTP/1.1 200 OK and a JSON response like {"status": "healthy" ...}.
 - You can also try `curl -v http://<YOUR_INTERNAL_ALB_DNS_NAME>/db-test` to test the database connection from the backend via the internal ALB.
 
@@ -510,7 +510,7 @@ To verify the backend's connectivity to the database via the internal ALB, you c
 - Click "Edit inbound rules" > "Add rule".
 - Set Type to "SSH", Source to "Anywhere-IPv4 (0.0.0.0/0)". Add a description like "Test rule for remediation".
 - Click "Save rules".
-- Navigate to the AWS Lambda console, find your lambda, go to its Monitor tab, and then Logs (via CloudWatch Logs). You should see an invocation and logs indicating that the Lambda detected and revoked the rule.
+- Navigate to the Lambda console, find your lambda, go to its Monitor tab, and then Logs (via CloudWatch Logs). You should see an invocation and logs indicating that the Lambda detected and revoked the rule.
 - Refresh the Security Group inbound rules in the EC2 console. The rule you just added should be gone.
 
 <img src="https://i.postimg.cc/6q7x4yVm/ssh-remediation-test.png" width="1100"/>
@@ -547,13 +547,13 @@ To verify the backend's connectivity to the database via the internal ALB, you c
 **2. curl: (28) Failed to connect to `<YOUR_INTERNAL_ALB_NAME>`...: Couldn't connect to server (when curling internal ALB from EC2 instance)**:
 * **Primary Cause**: This indicates a network-level blockage, most commonly due to restrictive Security Group rules. The EC2 instance running curl cannot establish a TCP connection to the Internal ALB.
 * **Solution**:
-     * **Internal ALB Security Group Ingress**: Ensure `<YOUR_INTERNAL_ALB_SG_NAME>` has an Inbound rule allowing HTTP (Port 80) traffic from the Security Group ID of the backend ECS instances <YOUR_BACKEND_ECS_INSTANCE_SG_NAME>. This allows the ECS instances (and thus the curl command from within one) to reach the ALB.
+     * **Internal ALB Security Group Ingress**: Ensure `<YOUR_INTERNAL_ALB_SG_NAME>` has an Inbound rule allowing HTTP (Port 80) traffic from the Security Group ID of the backend ECS instances `<YOUR_BACKEND_ECS_INSTANCE_SG_NAME>`. This allows the ECS instances (and thus the curl command from within one) to reach the ALB.
      * **Backend ECS Instance Security Group Egress**: Ensure `<YOUR_BACKEND_ECS_INSTANCE_SG_NAME>` has an Outbound rule allowing HTTP (Port 80) traffic to the `<YOUR_INTERNAL_ALB_SG_NAME>`.
      * **Subnet Connectivity**: Confirm the internal ALB is deployed in the correct private subnets and that those subnets have proper route table entries (e.g., to NAT Gateway if internet access is needed for image pull, or to VPC endpoints).
 
 **3. Application Crashes / Errors in Logs (e.g., Database connection issues)**:
 * **Check Environment Variables**: Verify that all necessary environment variables (like DB_HOST, DB_USER, DB_NAME, PORT) are correctly passed to the ECS Task Definition.
-* **Secrets Manager Access**: Ensure the ECS Task Execution Role has secretsmanager:GetSecretValue permissions for the specific database secret.
+* **Secrets Manager Access**: Ensure the ECS Task Execution Role has `secretsmanager:GetSecretValue` permissions for the specific database secret.
 * **Database Connectivity**:
     * **Backend Instance Security Group**: Ensure `<YOUR_BACKEND_ECS_INSTANCE_SG_NAME>` allows TCP (Port 5432) outbound to the `<YOUR_DATABASE_SG_NAME>`.
     * **RDS Security Group**: Ensure `<YOUR_DATABASE_SG_NAME>` allows TCP (Port 5432) inbound from the `<YOUR_BACKEND_ECS_INSTANCE_SG_NAME>`.
