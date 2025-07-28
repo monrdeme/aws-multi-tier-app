@@ -1,5 +1,5 @@
 # AWS Multi-Tier Application
-This repository contains the infrastructure and application code for a robust, multi-tier web application deployed on AWS, built with a strong emphasis on DevSecOps best practices. It serves as a comprehensive example of how to integrate security controls, automation, and observability throughout the entire software development lifecycle, from code commit to production deployment.
+This repository contains the infrastructure and application code for a robust, multi-tier web application deployed on AWS. It’s designed with a strong emphasis on DevSecOps best practices, showcasing how to integrate security, automation, and observability throughout the entire software development lifecycle—from code commit to production deployment.
 
 ---
 
