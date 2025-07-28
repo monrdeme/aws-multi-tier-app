@@ -36,9 +36,9 @@ This repository contains the infrastructure and application code for a robust, m
 
 This project demonstrates a secure and scalable architecture for a typical web application, comprising:
 
-* **Frontend (Flask):** A simple Python Flask application serving as the user interface.
-* **Backend (Flask):** A Python Flask API service handling business logic and interacting with the database.
-* **Database (AWS RDS PostgreSQL):** A managed relational database service providing persistent storage.
+* **Frontend (Flask)**: A simple Python Flask application serving as the user interface.
+* **Backend (Flask)**: A Python Flask API service handling business logic and interacting with the database.
+* **Database (RDS PostgreSQL)**: A managed relational database service providing persistent storage.
 
 All infrastructure is defined and managed using Terraform, ensuring consistency, repeatability, and version control.
 
@@ -52,28 +52,28 @@ All infrastructure is defined and managed using Terraform, ensuring consistency,
 
 ## Key Features & Technologies
 
-* **Multi-Tier Architecture:** Frontend and Backend applications decoupled and deployed on separate ECS services within private subnets.
-* **Containerization (Docker & Amazon ECS):** Applications are containerized and orchestrated using Amazon Elastic Container Service (ECS) with EC2 launch type.
-* **Load Balancing (AWS Application Load Balancers):**
-    * **Public ALB:** For external user access to the Frontend.
-    * **Internal ALB:** For secure, internal communication between the Frontend and Backend.
-* **Networking (AWS VPC):** Secure and isolated network environment configured with public, private application, and private database subnets, along with scoped Security Groups to enforce least-privilege access.
-* **Database Management (AWS RDS PostgreSQL):** Secure and scalable managed database service.
-* **Infrastructure as Code (Terraform):** Complete AWS infrastructure provisioning and management using Terraform modules.
-* **DevSecOps Pipeline (GitHub Actions):** Automated CI/CD pipeline leveraging GitHub Actions for:
-    * **Build:** Docker image creation.
-    * **Security Scanning:**
-        * **Trivy:** Container image vulnerability scanning.
-        * **Bandit:** Static Application Security Testing (SAST) for Python code.
-        * **Checkov:** Infrastructure as Code (IaC) static analysis for Terraform.
-    * **Deployment:** Automated deployment to Amazon ECS.
-* **Security & Monitoring:**
-    * **AWS Secrets Manager:** Secure storage and retrieval of sensitive application credentials (e.g., database passwords).
-    * **AWS GuardDuty:** Intelligent threat detection.
-    * **AWS Security Hub:** Centralized security posture management and compliance checks.
-    * **AWS CloudTrail:** API activity logging for auditing and governance.
-    * **AWS Lambda for Auto-Remediation:** Automated response to security findings (e.g., stopping and terminating non-compliant instances).
-    * **SSM Session Manager:** Secure, auditable access to EC2 instances without SSH keys or bastion hosts.
+* **Multi-Tier Architecture:** A decoupled application design featuring a public-facing Frontend and an internal Backend service, both containerized and deployed on Amazon ECS.
+* **Containerization (Docker & Amazon ECS)**: Applications are containerized and orchestrated using Amazon Elastic Container Service (ECS) with EC2 launch type.
+* **Load Balancing (AWS Application Load Balancers)**:
+    * **Public ALB**: For external user access to the Frontend.
+    * **Internal ALB**: For secure, internal communication between the Frontend and Backend.
+* **Networking (AWS VPC)**: Secure and isolated network environment configured with public, private application, and private database subnets, along with scoped Security Groups to enforce least-privilege access.
+* **Database Management (AWS RDS PostgreSQL)**: Secure and scalable managed database service.
+* **Infrastructure as Code (Terraform)**: Complete AWS infrastructure provisioning and management using Terraform modules.
+* **DevSecOps Pipeline (GitHub Actions)**: Automated CI/CD pipeline leveraging GitHub Actions for:
+    * **Build**: Docker image creation.
+    * **Security Scanning**:
+        * **Trivy**: Container image vulnerability scanning.
+        * **Bandit**: Static Application Security Testing (SAST) for Python code.
+        * **Checkov**: Infrastructure as Code (IaC) static analysis for Terraform.
+    * **Deployment**: Automated deployment to Amazon ECS.
+* **Security & Monitoring**:
+    * **AWS Secrets Manager**: Secure storage and retrieval of sensitive application credentials (e.g., database passwords).
+    * **AWS GuardDuty**: Intelligent threat detection.
+    * **AWS Security Hub**: Centralized security posture management and compliance checks.
+    * **AWS CloudTrail**: API activity logging for auditing and governance.
+    * **AWS Lambda for Auto-Remediation**: Automated response to security findings (e.g., stopping and terminating non-compliant instances).
+    * **SSM Session Manager**: Secure, auditable access to EC2 instances without SSH keys or bastion hosts.
 
 ---
 
@@ -391,20 +391,20 @@ This section provides a step-by-step guide to deploying the entire AWS multi-tie
 **1. AWS IAM Role Setup for GitHub Actions (OIDC)**:
 - Create an IAM OIDC Identity Provider:
    * Go to IAM > Identity Providers > Add provider
-   * **Provider type:** OpenID Connect
-   * **Provider URL:** https://token.actions.githubusercontent.com
-   * **Audience:** sts.amazonaws.com
+   * **Provider type**: OpenID Connect
+   * **Provider URL**: https://token.actions.githubusercontent.com
+   * **Audience**: sts.amazonaws.com
    * Click Add provider.
 
 - Create an IAM Role for GitHub Actions:
   * Go to IAM > Roles > Create role.
-  * **Trusted entity type:** Web identity.
-  * **Identity provider:** Select token.actions.githubusercontent.com.
-  * **Audience:** Select sts.amazonaws.com.
-  * **Condition (Recommended for Security):** Add a condition to restrict which repositories or branches can assume this role. For example:
+  * **Trusted entity type**: Web identity.
+  * **Identity provider**: Select token.actions.githubusercontent.com.
+  * **Audience**: Select sts.amazonaws.com.
+  * **Condition (Recommended for Security)**: Add a condition to restrict which repositories or branches can assume this role. For example:
         `StringLike`: `token.actions.githubusercontent.com:sub` : `repo:<YOUR_GITHUB_ORG_OR_USERNAME>/<YOUR_REPO_NAME>:*`. This ensures only your specific repository (or branch) can assume the role.
   * **Permissions**: Attach the necessary permissions policies. For initial setup and ease, you might use AdministratorAccess (for terraform apply). However, for production, restrict this to the minimum necessary permissions (e.g., AmazonECS_FullAccess, AmazonRDSFullAccess, AmazonS3FullAccess for specific buckets, etc.).
-  * **Role name:** Give it a name like github-actions-oidc-deploy-role.
+  * **Role name**: Give it a name like github-actions-oidc-deploy-role.
   * Create the role and note down its ARN.
 
 <img src="https://i.postimg.cc/RVFzfCc4/github-actions-role.png" width="1100"/>
@@ -489,7 +489,7 @@ To verify the backend's connectivity to the database via the internal ALB, you c
 **3. Curl the Internal ALB's Health Endpoint**:
 - Once connected, run the following curl command to test connectivity to your Internal ALB's DNS name on the /health endpoint: `curl -v http://<YOUR_INTERNAL_ALB_DNS_NAME>/health`
 - (Replace `<YOUR_INTERNAL_ALB_DNS_NAME>` with the actual DNS name of the Internal ALB found under EC2 > Load Balancers).
-- **Expected Output:** You should see HTTP/1.1 200 OK and a JSON response like {"status": "healthy" ...}.
+- **Expected Output**: You should see HTTP/1.1 200 OK and a JSON response like {"status": "healthy" ...}.
 - You can also try `curl -v http://<YOUR_INTERNAL_ALB_DNS_NAME>/db-test` to test the database connection from the backend via the internal ALB.
 
 **4. Security Group Consideration for SSM curl Test**:
