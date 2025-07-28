@@ -52,7 +52,7 @@ All infrastructure is defined and managed using Terraform, ensuring consistency,
 
 ## Key Features & Technologies
 
-* **Multi-Tier Architecture:** A decoupled application design featuring a public-facing Frontend and an internal Backend service, both containerized and deployed on Amazon ECS.
+* **Multi-Tier Architecture**: A decoupled application design featuring a public-facing Frontend and an internal Backend service, both containerized and deployed on Amazon ECS.
 * **Containerization (Docker & Amazon ECS)**: Applications are containerized and orchestrated using Amazon Elastic Container Service (ECS) with EC2 launch type.
 * **Load Balancing (AWS Application Load Balancers)**:
     * **Public ALB**: For external user access to the Frontend.
